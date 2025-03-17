@@ -1,0 +1,128 @@
+design for the project
+
+
+
+
+
+Project:
+design a system that enables users to post programming questions,
+can post responses to these programming questions
+
+
+note --> channel is a section where messages are being posted 
+must be able to 
+create channels
+view all channel
+select a post and be able to post messages in that channel 
+post replies to exisiting messages
+
+
+
+landing page/starting page
+-description of the system
+- should enable users to search for a channel (should be in all of them)
+-have a login feature
+
+
+User accounts
+-users must have accounts (must be enforced) to use the system, should be 
+able to create accounts as well. Also there is an admin account that can 
+delete channels,posts or replies  
+ 
+
+channel page
+-topic
+-post 
+-replies
+-button that can post more stuff as well as includes screenshots
+-button that enables you to reply to a post 
+-button that tracks upvotes and downvotes 
+
+search bar
+-can search for channels with a specific feature, ie 
+all titles with the arrow function feature. 
+-just use the like keyword in sql
+select * from  channels where title LIKE %?%
+
+
+
+
+database design
+sql database 
+could store channels,posts,replies
+
+channel would relate to a post
+post would relate to a reply 
+
+all posts but the primary post will
+have a channelid secondary key (as I 
+dont want the primary post showing up
+in the join operations I do)
+
+
+table channel:
+primary key id,title,description, main-post-id, date
+
+
+table post:
+primary key id, topic,description,secondary key photo,date  
+
+table photos (maybe,might be too big):
+primary key id, varbinary photo
+
+table reply:
+primary key id,topic,description,secondary key postId, date
+
+table button:
+primary key id, integer upvotes, secondary key post id
+
+a nosql database might make much more sense
+for accounts, since the relational model
+makes no sense here and accounts may be able
+to read and write more
+
+document account:
+username:
+password:
+admin_privaledges:
+avatar:
+posts that it has upvoted on:
+posts it has created:
+
+
+
+
+React components
+
+
+navbar:
+-has the ability to search for channels 
+-also has a login button that when user enters creditionals,
+just goes away or something 
+-has a create channels button which will create a page that enables
+users to create a channel
+
+channel
+- should be able to store posts 
+- will also need to fetch its id for being
+able to pass down to children 
+-has the ability to create posts (with a button)
+-will have to fetch the children posts and update every time one gets added 
+
+
+post
+-should be able to store topic,description,image if needed,
+-also has a list of replies on it 
+-very likely can just reuse from a5,only exception being the images part
+-also has to house a button that is used for upvotes and downvotes
+-also needs date field, as well as who created it 
+-needs a delete button somewhere
+
+replies:
+- very similar to a5, just need a way to delete somewhere  
+
+
+
+
+
+ 
