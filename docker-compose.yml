@@ -1,0 +1,44 @@
+services:
+    couchdb:
+      image: couchdb:3.4.2
+      container_name: couchdb
+      restart: unless-stopped
+      environment:
+        - COUCHDB_USER=admin
+        - COUCHDB_PASSWORD=password
+      ports:
+        - "5984:5984"
+
+      volumes:
+        - ./couch:/opt/couchdb/data
+    website:
+      image: mywebsite
+      container_name: a4
+      build:
+        context: ./
+      ports:
+        - "3001:8080"
+      restart: always
+      environment:
+        #COUCHDB_URL: "http://admin:password@couchdb:5984"
+        COUCHDB_URL:  "http:couchdb:5984"
+        COUCHDB_DB: "questionsdb"
+      depends_on:
+        couchdb:
+          condition: service_started
+
+    frontend:
+      image: myfrontend
+      container_name: frontend
+      build:
+        context: ./frontend
+      ports:
+        - "3000:3000"
+
+      restart: unless-stopped
+      depends_on:
+        website: 
+          condition: service_started
+
+
+
