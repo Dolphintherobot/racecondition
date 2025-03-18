@@ -172,7 +172,7 @@ app.post("/channel",async  (req,res) => {
 
 
 
-app.post("/channel",async (req,res) => {
+app.put("/channel/:id",async (req,res) => {
 
 	/*data has be be in the format
 	 * id -> id you wish to update
@@ -180,9 +180,88 @@ app.post("/channel",async (req,res) => {
 	 * description you wish to update
 	 */
 
+	let id = req.params.id
+
+	if (!id) {
+	
+		res.status(404).send({message:"no id given"});
+
+	}
+
+	let title = req.body.title
+	let description = req.body.description;
+
+
+	let query = 
+		`
+		BEGIN TRANSACTION T1 
+			BEGIN TRY 
+				UPDATE channel
+				set topic = ?, description = ?,
+				WHERE id = ?
+		
+				COMMIT TRANSACTION T1
+			END TRY
+		
+			BEGIN CATCH
+				ROLLBACK TRANSACTION t1
+			END CATCH
+		`
+
+
+	sql.query(query,[title,description,id]).
+		then( [result] =>{
+
+			if (result.affectedRows == 0) {
+				//409 stands for resource conflict 
+				res.status(409).send({message:"attempting to update channel simulatenously with another user"});
+
+			}
+			else {
+				//204 stands for succesfull process of request
+				//but not returning any data
+				res.status(204).send();
+			}
+
+			})
+
 
 });
 
+
+app.delete("/channle/:id" async (req,res) => {
+
+	let id = req.params.id;
+
+	if (!id) {
+	
+		res.status(404).send({message:"no id given"});
+
+	}
+
+
+
+	let q = "DELETE FROM channel where id = ?"
+
+	sql.query(q,[id]).
+		then( [result] => {	
+			if (result.affectedRows == 0) {
+				//409 stands for resource conflict 
+				res.status(409).send({message:"attempting to delete non existance channel"});
+
+			}
+			else {
+				//204 stands for succesfull process of request
+				//but not returning any data
+				res.status(204).send();
+			}
+
+		
+		})
+	
+
+
+})
 
 
 
