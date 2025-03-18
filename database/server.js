@@ -1,13 +1,19 @@
 'use strict';
 
+
+
+const cors = require("cors");
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const path = require('path');
 const sql = require("mysql2");
 
+const PORT = 8080;
 const DOCKER_IP = "172.23.0.2";  // You may not need this anymore
 
+
+//try connecting to sql database
 const con = sql.createPool({
     host: DOCKER_IP || process.env.DB_HOST || "mysql1",  // Use the Docker service name
     port: process.env.DB_PORT || "3306",  // Use the correct MySQL port
@@ -25,7 +31,6 @@ con.getConnection((err, connection) => {
     connection.release();  // Don't forget to release the connection
 });
 
-
 const db = con.promise();
 
 
@@ -37,21 +42,31 @@ const createTable2 = "create table if not exists responses (id integer primary k
 db.query(createTable).catch(err => console.log(err));
 db.query(createTable2).catch(err => console.log(err));
 
-//entries should contain {id,topic,data,timestamp}
-var posts =[];
-var postId = 0;
 
-//entries should contain {id,postId,data,timestamp}
-var responses = [];
-var responseId = 0;
+//try connecting to the couchdb database
+const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
+const COUCHDB_DB = process.env.COUCHDB_DB || 'questionsdb';
+
+const nano = require('nano')(COUCHDB_URL)
+nano.auth("admin","password");
+
+try{
+const db = nano.use(COUCHDB_DB);
+	}
+catch (err) {
+
+	console.log(err);
+	nano.create(COUCHDB_DB);
+	db = nano.use(COUCHDB_DB);
+
+}
+const db = nano.use(COUCHDB_DB);
 
 
-const PORT = 8080;
 app.use(bodyParser.urlencoded({ extended: true }));
-//app.use(bodyParser.json());
 app.use(bodyParser.text());
 app.use(express.json());
-
+app.use(cors());
 
 app.get('/', (req,res) => {
 
