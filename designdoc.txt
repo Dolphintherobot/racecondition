@@ -91,6 +91,45 @@ posts it has created:
 
 
 
+################################################
+Backend components:
+its possible that more specific update features may be required
+they can be specified with URL/resource/id/<part to update>
+
+its very likely I am going to keep the paths the same both in
+the database server and the backend, since both are restful and
+it makes the 2 servers interchangable,which is good design
+
+
+
+let url be the url of the server
+
+get all channels
+URL/channel/id
+
+get all channels that match certain string
+URL/channel/query string=?
+
+get put,post,delete a channel with an id 
+URL/channel/id
+
+for getting all posts
+URL/posts
+
+get,put,post,delete a post with an id
+URL/posts/id
+
+
+get all replies
+URL/replies
+
+get,put,post,delete a post with an id 
+URL/replies/id
+
+
+
+
+
 
 React components
 
