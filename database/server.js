@@ -55,7 +55,7 @@ const createTablesQuery = `
       description TEXT,
       photo VARCHAR(255),
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (channelId) REFERENCES channel(id)
+      FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
   );
 
   CREATE INDEX IF NOT EXISTS idx_post_photo ON post(photo);
@@ -70,8 +70,10 @@ const createTablesQuery = `
       topic VARCHAR(255) NOT NULL,
       description TEXT,
       post_id INT,
+      reply_id INT,
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (post_id) REFERENCES post(id)
+      FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
+      FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE,
   );
 
   CREATE INDEX IF NOT EXISTS idx_reply_post_id ON reply(post_id);
@@ -80,7 +82,7 @@ const createTablesQuery = `
       id INT PRIMARY KEY AUTO_INCREMENT,
       upvotes INT DEFAULT 0,
       post_id INT,
-      FOREIGN KEY (post_id) REFERENCES post(id)
+      FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
   );
 
   CREATE INDEX IF NOT EXISTS idx_button_post_id ON button(post_id);
@@ -118,7 +120,22 @@ app.get('/', (req,res) => {
 })
 
 
-//uses AJAX so slightly different format 
+
+/*all the lovely stuff to do with channels*/
+
+app.get("/channel" async (req,res) => {
+
+	let query = "SELECT * FROM channels"
+
+	sql.query(query).then([data] res.send({channels:data}).
+		catch(err => console.log(err)) ;
+
+	
+
+});
+
+
+
 app.post("/channel",async  (req,res) => { 
 
 	let title = req.body.title;
@@ -136,90 +153,36 @@ app.post("/channel",async  (req,res) => {
 
 	sql.query(channelQuery,[title,description]).
 		then( [response] => {
-	
+		)
 		responseObject[channelId] = response.insertId
 
-		sql.query(postQuery,[title,description,responseObject.channelId).
+		sql.query)(postQuery,[title,description,responseObject.channelId).
 			then( [data] =>{
 
-				responseObject[postId] = data.insertId;
+			)	responseObject[postId] = data.insertId;
 
 				res.send(responseObject);
-			})
+			)	})
 		
 
-	})
+		)	})
+
+
+}));
 
 
 
-	//posts.push(postObject);
-	//
+app.post("/channel",async (req,res) => {
 
-
-	res.send(respObj);
-
-});
-
-
-
-//uses AJAX so slightly different format 
-app.post("/postmessage",async  (req,res) => { 
-
-	var topic = req.body.topic;
-	var data  = req.body.data;
-	
-	let postObject = {
-		id:postId++,
-		topic:topic,
-		data:data,
-		timestamp: new Date(),
-	};
-
-	//posts.push(postObject);
-	//
-
-	let respObj = await insertPost(topic,data);
-
-	res.send(respObj);
-
-});
-
-
-
-
-//uses AJAX so slightly different format 
-app.post("/postresponse", async (req,res) => { 
-
-	var postId = req.body.postId;
-	var data  = req.body.data;
-	
-	let responseObject = {
-		id:responseId++,
-		postId:postId,
-		data:data,
-		timestamp:new Date(),
-	};
-
-	//responses.push(responseObject);
-
-	let respObj = await insertResponse(postId,data);
-
-	res.send(respObj);
-
-});
-
-
-
-
-app.get("/alldata",async (req,res) => {
-
-	let alldata = await getAllData();
-
-	res.json(alldata);
-
+	/*data has be be in the format
+	 * id -> id you wish to update
+	 * topic --> topic you wish to update 
+	 * description you wish to update
+	 */
 
 
 });
+
 
 
 
