@@ -23,7 +23,8 @@ const con = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 10000  // 10 seconds timeout
+    connectTimeout: 10000,  // 10 seconds timeout,,
+    multipleStatements:true,
 });
 
 
@@ -46,7 +47,7 @@ const sql = con.promise();
 //nano.auth("admin","password");
 
 
-
+/*
 const createTablesQuery = `
   CREATE TABLE IF NOT EXISTS channel (
       id INTEGER PRIMARY KEY AUTO_INCREMENT,
@@ -64,11 +65,11 @@ const createTablesQuery = `
       FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
   );
 
-  CREATE INDEX IF NOT EXISTS idx_post_photo ON post(photo);
+  CREATE INDEX idx_post_photo ON post(photo);
 
   CREATE TABLE IF NOT EXISTS photos (
       id INTEGER PRIMARY KEY AUTO_INCREMENT,
-      photo VARBINARY(MAX) NOT NULL
+      photo BLOB NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS reply (
@@ -82,7 +83,7 @@ const createTablesQuery = `
       FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
   );
 
-  CREATE INDEX IF NOT EXISTS idx_reply_post_id ON reply(post_id);
+  CREATE INDEX  idx_reply_post_id ON reply(post_id);
 
   CREATE TABLE IF NOT EXISTS button (
       id INT PRIMARY KEY AUTO_INCREMENT,
@@ -91,9 +92,62 @@ const createTablesQuery = `
       FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
   );
 
-  CREATE INDEX IF NOT EXISTS idx_button_post_id ON button(post_id);
+  CREATE INDEX  idx_button_post_id ON button(post_id);
 `;
+*/
 
+
+const createTablesQuery = `
+CREATE TABLE IF NOT EXISTS channel (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS post (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    topic VARCHAR(255) NOT NULL,
+    description TEXT,
+    photo VARCHAR(255),
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    channelId INT,
+    FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
+);
+
+-- Create index on the photo field
+CREATE INDEX idx_post_photo ON post(photo);
+
+CREATE TABLE IF NOT EXISTS photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    photo BLOB NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reply (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    topic VARCHAR(255) NOT NULL,
+    description TEXT,
+    post_id INT,
+    reply_id INT,  -- reference to reply(id) for nested replies
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
+    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
+);
+
+-- Create index on post_id in reply table
+CREATE INDEX idx_reply_post_id ON reply(post_id);
+
+CREATE TABLE IF NOT EXISTS button (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    upvotes INT DEFAULT 0,
+    post_id INT,
+    FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
+);
+
+-- Create index on post_id in button table
+CREATE INDEX idx_button_post_id ON button(post_id);
+
+`
 
 
 
