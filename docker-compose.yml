@@ -52,32 +52,3 @@ services:
 
 
 
-  website:
-      image: mywebsite
-      container_name: a4
-      build:
-        context: ./
-      ports:
-        - "3001:8080"
-      restart: always
-      environment:
-        DB_URL: "http://db-backend:3002"
-      depends_on:
-        couchdb:
-          condition: service_started
-
-  frontend:
-      image: myfrontend
-      container_name: frontend
-      build:
-        context: ./frontend
-      ports:
-        - "3000:3000"
-
-      restart: unless-stopped
-      depends_on:
-        website: 
-          condition: service_started
-
-
-
