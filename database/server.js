@@ -115,8 +115,6 @@ CREATE TABLE IF NOT EXISTS post (
     FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
 );
 
--- Create index on the photo field
-CREATE INDEX idx_post_photo ON post(photo);
 
 CREATE TABLE IF NOT EXISTS photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -134,8 +132,6 @@ CREATE TABLE IF NOT EXISTS reply (
     FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
 );
 
--- Create index on post_id in reply table
-CREATE INDEX idx_reply_post_id ON reply(post_id);
 
 CREATE TABLE IF NOT EXISTS button (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -144,8 +140,6 @@ CREATE TABLE IF NOT EXISTS button (
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
 );
 
--- Create index on post_id in button table
-CREATE INDEX idx_button_post_id ON button(post_id);
 
 `
 
@@ -185,7 +179,7 @@ app.get('/', (req,res) => {
 
 app.get("/channel", async (req,res) => {
 
-	let query = "SELECT * FROM channels"
+	let query = "SELECT * FROM channel"
 
 	sql.query(query).
 		then(d =>  {
@@ -207,11 +201,6 @@ app.post("/channel",async  (req,res) => {
 	let title = req.body.title;
 	let description  = req.body.description;
 	
-	let postObject = {
-		topic:topic,
-		data:data,
-	};
-
 	let responseObject = {channelId:0,postId:0,title:title,description,description}
 
 	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
@@ -220,12 +209,12 @@ app.post("/channel",async  (req,res) => {
 	sql.query(channelQuery,[title,description]).
 		then( r => {
 		let [response] = r;	
-		responseObject[channelId] = response.insertId
+		responseObject.channelId = response.insertId
 
 		sql.query(postQuery,[title,description,responseObject.channelId]).
 			then( d =>{
 				let [data] = d;
-				responseObject[postId] = data.insertId;
+				responseObject.postId = data.insertId;
 
 				res.send(responseObject);
 				})
