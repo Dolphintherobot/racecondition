@@ -7,20 +7,26 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const path = require('path');
-const sql = require("mysql2");
+const mysql = require("mysql2");
 
 const PORT = 8080;
 const DOCKER_IP = "172.23.0.2";  // You may not need this anymore
 
 
 //try connecting to sql database
-const con = sql.createPool({
-    host: DOCKER_IP || process.env.DB_HOST || "mysql1",  // Use the Docker service name
-    port: process.env.DB_PORT || "3306",  // Use the correct MySQL port
+const con = mysql.createPool({
+    host: process.env.DB_HOST || "mysql1",
+    port: process.env.DB_PORT || "3306",
     user: process.env.DB_USER || "user1",
     password: process.env.DB_PASSWORD || "user1_xxx",
     database: process.env.DB_DATABASE || "my_database",
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    connectTimeout: 10000  // 10 seconds timeout
 });
+
+
 
 con.getConnection((err, connection) => {
     if (err) {
@@ -33,24 +39,24 @@ con.getConnection((err, connection) => {
 
 const sql = con.promise();
 //try connecting to the couchdb database
-const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
-const COUCHDB_DB = process.env.COUCHDB_DB || 'questionsdb';
+//const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
+//const COUCHDB_DB = process.env.COUCHDB_DB || 'questionsdb';
 
-const nano = require('nano')(COUCHDB_URL)
-nano.auth("admin","password");
+//const nano = require('nano')(COUCHDB_URL)
+//nano.auth("admin","password");
 
 
 
 const createTablesQuery = `
   CREATE TABLE IF NOT EXISTS channel (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id INTEGER PRIMARY KEY AUTO_INCREMENT,
       title VARCHAR(255) NOT NULL,
       description TEXT,
-      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE IF NOT EXISTS post (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id INTEGER PRIMARY KEY AUTO_INCREMENT,
       topic VARCHAR(255) NOT NULL,
       description TEXT,
       photo VARCHAR(255),
@@ -61,19 +67,19 @@ const createTablesQuery = `
   CREATE INDEX IF NOT EXISTS idx_post_photo ON post(photo);
 
   CREATE TABLE IF NOT EXISTS photos (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id INTEGER PRIMARY KEY AUTO_INCREMENT,
       photo VARBINARY(MAX) NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS reply (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id INTEGER PRIMARY KEY AUTO_INCREMENT,
       topic VARCHAR(255) NOT NULL,
       description TEXT,
-      post_id INT,
-      reply_id INT,
+      post_id INTEGER,
+      reply_id INTEGER,
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-      FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE,
+      FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
   );
 
   CREATE INDEX IF NOT EXISTS idx_reply_post_id ON reply(post_id);
@@ -92,8 +98,8 @@ const createTablesQuery = `
 
 
 //try grabbing the tables for sql 
-sql.query(createTablesQuery).catch(err => console.log(err));
-
+sql.query(createTablesQuery).catch(err => console.log("error with database" + err));
+/*
 try{
 const couch = nano.use(COUCHDB_DB);
 	}
@@ -105,7 +111,7 @@ catch (err) {
 
 }
 const couch = nano.use(COUCHDB_DB);
-
+*/
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.text());
@@ -123,11 +129,17 @@ app.get('/', (req,res) => {
 
 /*all the lovely stuff to do with channels*/
 
-app.get("/channel" async (req,res) => {
+app.get("/channel", async (req,res) => {
 
 	let query = "SELECT * FROM channels"
 
-	sql.query(query).then([data] res.send({channels:data}).
+	sql.query(query).
+		then(d =>  {
+		
+			let [data] = d;
+
+			res.send({channels:data});
+		}).
 		catch(err => console.log(err)) ;
 
 	
@@ -152,23 +164,23 @@ app.post("/channel",async  (req,res) => {
 	let postQuery = "INSERT INTO post (topic,description,channelId) VALUES (?,?,?)"
 
 	sql.query(channelQuery,[title,description]).
-		then( [response] => {
-		)
+		then( r => {
+		let [response] = r;	
 		responseObject[channelId] = response.insertId
 
-		sql.query)(postQuery,[title,description,responseObject.channelId).
-			then( [data] =>{
-
-			)	responseObject[postId] = data.insertId;
+		sql.query(postQuery,[title,description,responseObject.channelId]).
+			then( d =>{
+				let [data] = d;
+				responseObject[postId] = data.insertId;
 
 				res.send(responseObject);
-			)	})
+				})
 		
 
-		)	})
+			})
 
 
-}));
+});
 
 
 
@@ -210,8 +222,8 @@ app.put("/channel/:id",async (req,res) => {
 
 
 	sql.query(query,[title,description,id]).
-		then( [result] =>{
-
+		then( r =>{
+			let [result] = r;
 			if (result.affectedRows == 0) {
 				//409 stands for resource conflict 
 				res.status(409).send({message:"attempting to update channel simulatenously with another user"});
@@ -229,7 +241,7 @@ app.put("/channel/:id",async (req,res) => {
 });
 
 
-app.delete("/channle/:id" async (req,res) => {
+app.delete("/channle/:id", async (req,res) => {
 
 	let id = req.params.id;
 
@@ -244,7 +256,8 @@ app.delete("/channle/:id" async (req,res) => {
 	let q = "DELETE FROM channel where id = ?"
 
 	sql.query(q,[id]).
-		then( [result] => {	
+		then( r => {
+			let [result] = r;
 			if (result.affectedRows == 0) {
 				//409 stands for resource conflict 
 				res.status(409).send({message:"attempting to delete non existance channel"});
