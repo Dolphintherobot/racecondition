@@ -1,0 +1,83 @@
+services:
+  mysql1:
+    image: mysql:8.0
+    container_name: db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "admin_xxx"
+      MYSQL_DATABASE: "my_database"
+      MYSQL_USER: "user1"
+      MYSQL_PASSWORD: "user1_xxx"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3307:3306"  # External:Internal MySQL port mapping
+    volumes:
+      - "./mydatabase:/var/lib/mysql" 
+    networks:
+      - app_network  # Add a custom network (optional but recommended)
+  couchdb:
+      image: couchdb:3.4.2
+      container_name: couchdb
+      restart: unless-stopped
+      environment:
+        - COUCHDB_USER=admin
+        - COUCHDB_PASSWORD=password
+      ports:
+        - "5984:5984"
+
+      volumes:
+        - ./couch:/opt/couchdb/data
+  
+  database-backend:
+    image: db-backend
+    container_name: db-backend
+    build:
+      context: ./database
+    ports:
+      - "3002:8080"
+    restart: always
+    environment:
+      DB_HOST: "mysql1"  # Use the service name to connect to the MySQL container
+      DB_PORT: 3306  # The internal MySQL port
+      DB_DATABASE: "my_database"
+      DB_USER: "user1"
+      DB_PASSWORD: "user1_xxx"
+      COUCHDB_URL:  "http:couchdb:5984"
+      COUCHDB_DB: "questionsdb"
+    depends_on:
+      mysql1:
+        condition: service_started
+      couchdb: 
+          condition: service_started
+
+
+
+  website:
+      image: mywebsite
+      container_name: a4
+      build:
+        context: ./
+      ports:
+        - "3001:8080"
+      restart: always
+      environment:
+        DB_URL: "http://db-backend:3002"
+      depends_on:
+        couchdb:
+          condition: service_started
+
+  frontend:
+      image: myfrontend
+      container_name: frontend
+      build:
+        context: ./frontend
+      ports:
+        - "3000:3000"
+
+      restart: unless-stopped
+      depends_on:
+        website: 
+          condition: service_started
+
+
+
