@@ -325,6 +325,245 @@ app.delete("/channel/:id", async (req,res) => {
 
 
 
+/**********************POST CRUD **********************/
+
+// GET /post
+app.get("/post", async (req, res) => {
+    const query = "SELECT * FROM post";
+    try {
+        const [posts] = await sql.query(query);
+        res.send({ posts });
+    } catch (err) {
+        console.error("Error fetching posts:", err);
+        res.status(500).json({ error: "Failed to fetch posts" });
+    }
+});
+
+// POST /post
+app.post("/post", async (req, res) => {
+    const { topic, description, channelId, photo } = req.body;
+    const query = "INSERT INTO post (topic, description, photo, channelId) VALUES (?, ?, ?, ?)";
+
+    const connection = await sql.getConnection();
+    const [result] = await connection.query(query, [topic, description, photo, channelId]);
+    res.status(201).send({ postId: result.insertId });
+    connection.release();
+    
+});
+
+
+
+app.put("/post/:id", async (req, res) => {
+    const { topic, description} = req.body;
+    const { id } = req.params;
+
+	//for right now make it so we cannot update a photo once it 
+	//has been created, this may change
+    const query = "UPDATE post SET topic = ?, description = ?, WHERE id = ?";
+
+    if (!id) return res.status(404).send({ message: "No post ID provided" });
+
+    const connection = await sql.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [result] = await connection.query(query, [topic, description, id]);
+
+        if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
+
+        await connection.commit();
+        res.status(204).end();
+    } catch (err) {
+        await connection.rollback();
+        console.error("Error updating post:", err);
+        res.status(500).json({ error: "Failed to update post" });
+    } finally {
+        connection.release();
+    }
+});
+
+
+app.delete("/post/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(404).send({ message: "No post ID provided" });
+
+    const query = "DELETE FROM post WHERE id = ?";
+
+    try {
+        const [result] = await sql.query(query, [id]);
+
+        if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
+
+        res.status(204).end();
+    } catch (err) {
+        console.error("Error deleting post:", err);
+        res.status(500).json({ error: "Failed to delete post" });
+    }
+});
+
+
+
+/*#################### REPLIES #######################*/
+
+
+// GET /reply
+app.get("/reply", async (req, res) => {
+    const query = "SELECT * FROM reply";
+    try {
+        const [replies] = await sql.query(query);
+        res.send({ replies });
+    } catch (err) {
+        console.error("Error fetching replies:", err);
+        res.status(500).json({ error: "Failed to fetch replies" });
+    }
+});
+
+// POST /reply
+app.post("/reply", async (req, res) => {
+    const { topic, description, post_id, reply_id } = req.body;
+    const query = "INSERT INTO reply (topic, description, post_id, reply_id) VALUES (?, ?, ?, ?)";
+
+    try {
+        const [result] = await sql.query(query, [topic, description, post_id, reply_id]);
+        res.status(201).send({ replyId: result.insertId });
+    } catch (err) {
+        console.error("Error creating reply:", err);
+        res.status(500).json({ error: "Failed to create reply" });
+    }
+});
+
+// DELETE /reply/:id
+app.delete("/reply/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(404).send({ message: "No reply ID provided" });
+
+    const query = "DELETE FROM reply WHERE id = ?";
+
+    try {
+        const [result] = await sql.query(query, [id]);
+
+        if (result.affectedRows === 0) return res.status(404).send({ message: "Reply not found" });
+
+        res.status(204).end();
+    } catch (err) {
+        console.error("Error deleting reply:", err);
+        res.status(500).json({ error: "Failed to delete reply" });
+    }
+});
+
+
+app.put("/reply/:id", async (req, res) => {
+    const { topic, description } = req.body;
+    const { id } = req.params;
+    const query = "UPDATE reply SET topic = ?, description = ?, WHERE id = ?";
+
+    if (!id) return res.status(404).send({ message: "No post ID provided" });
+
+    const connection = await sql.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [result] = await connection.query(query, [topic, description, photo, id]);
+
+        if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
+
+        await connection.commit();
+        res.status(204).end();
+    } catch (err) {
+        await connection.rollback();
+        console.error("Error updating post:", err);
+        res.status(500).json({ error: "Failed to update post" });
+    } finally {
+        connection.release();
+    }
+});
+
+
+/****############ BUTTONS ########## **********/
+
+app.get("/button", async (req, res) => {
+    const query = "SELECT * FROM button";
+    try {
+        const [buttons] = await sql.query(query);
+        res.send({ buttons });
+    } catch (err) {
+        console.error("Error fetching buttons:", err);
+        res.status(500).json({ error: "Failed to fetch buttons" });
+    }
+});
+
+app.post("/button", async (req, res) => {
+    const { upvotes, post_id } = req.body;
+    const query = "INSERT INTO button (upvotes, post_id) VALUES (?, ?)";
+
+    try {
+        const [result] = await sql.query(query, [upvotes, post_id]);
+        res.status(201).send({ buttonId: result.insertId });
+    } catch (err) {
+        console.error("Error creating button:", err);
+        res.status(500).json({ error: "Failed to create button" });
+    }
+});
+
+
+
+app.delete("/button/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(404).send({ message: "No button ID provided" });
+
+    const query = "DELETE FROM button WHERE id = ?";
+
+    try {
+        const [result] = await sql.query(query, [id]);
+
+        if (result.affectedRows === 0) return res.status(404).send({ message: "Button not found" });
+
+        res.status(204).end();
+    } catch (err) {
+        console.error("Error deleting button:", err);
+        res.status(500).json({ error: "Failed to delete button" });
+    }
+});
+
+
+app.put("/button/:id", async (req, res) => {
+    const { id } = req.params;
+    const { upvotes } = req.body;
+
+
+	//it may make more sense to rewrite this to increment
+	//or decrement but for now I will leave it 
+    if (!id || upvotes === undefined) {
+        return res.status(400).send({ message: "Invalid data" });
+    }
+
+    const query = "UPDATE button SET upvotes = ? WHERE id = ?";
+
+    const connection = await sql.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [result] = await connection.query(query, [upvotes, id]);
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return res.status(404).send({ message: "Button not found" });
+        }
+
+        await connection.commit();
+        res.status(204).end();  // No content but request is successful
+    } catch (err) {
+        await connection.rollback();
+        console.log(err);
+        res.status(500).json({ error: "Failed to update button" });
+    } finally {
+        connection.release();
+    }
+});
+
+
+
 
 app.use(express.static("files"));
 
