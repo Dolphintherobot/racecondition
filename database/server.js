@@ -359,7 +359,7 @@ app.put("/post/:id", async (req, res) => {
 
 	//for right now make it so we cannot update a photo once it 
 	//has been created, this may change
-    const query = "UPDATE post SET topic = ?, description = ?, WHERE id = ?";
+    const query = "UPDATE post SET topic = ?, description = ? WHERE id = ?";
 
     if (!id) return res.status(404).send({ message: "No post ID provided" });
 
@@ -456,14 +456,14 @@ app.delete("/reply/:id", async (req, res) => {
 app.put("/reply/:id", async (req, res) => {
     const { topic, description } = req.body;
     const { id } = req.params;
-    const query = "UPDATE reply SET topic = ?, description = ?, WHERE id = ?";
+    const query = "UPDATE reply SET topic = ?, description = ? WHERE id = ?";
 
     if (!id) return res.status(404).send({ message: "No post ID provided" });
 
     const connection = await sql.getConnection();
     try {
         await connection.beginTransaction();
-        const [result] = await connection.query(query, [topic, description, photo, id]);
+        const [result] = await connection.query(query, [topic, description, id]);
 
         if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
 
