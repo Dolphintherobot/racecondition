@@ -246,39 +246,42 @@ app.put("/channel/:id",async (req,res) => {
 	let title = req.body.title
 	let description = req.body.description;
 
+	const q = "UPDATE channel SET title = ?,description = ? WHERE id = ?"
 
-	let query = 
-		`
-		BEGIN TRANSACTION T1 
-			BEGIN TRY 
-				UPDATE channel
-				set topic = ?, description = ?,
-				WHERE id = ?
+	try {
+		const  connection = await sql.getConnection();
+
+	try {
+		await connection.beginTransaction();
+		let result = await connection.query(q,[title,description,id]);
+		if (result.affectRows == 0) {
 		
-				COMMIT TRANSACTION T1
-			END TRY
-		
-			BEGIN CATCH
-				ROLLBACK TRANSACTION t1
-			END CATCH
-		`
+			throw new Error("Updating channel Failed");
 
+		}
 
-	sql.query(query,[title,description,id]).
-		then( r =>{
-			let [result] = r;
-			if (result.affectedRows == 0) {
-				//409 stands for resource conflict 
-				res.status(409).send({message:"attempting to update channel simulatenously with another user"});
+		await connection.commit();
+		//204 is ok but I am not sending you anything
+		res.status(204).end();
+	}
 
-			}
-			else {
-				//204 stands for succesfull process of request
-				//but not returning any data
-				res.status(204).send();
-			}
+	catch (err) {
+		connection.rollback();
+		console.log(err);
+		//409 stands for resource conflict 
+		res.status(409).json({message:"attempting to update channel simulatenously with another user error message:" + err.message});
 
-			})
+		}
+	
+		finally { connection.release();}
+
+	}
+
+		catch (err) { 
+			console.error("Database COnnection Error",err);
+			res.status(500).json({error:"Database error"})
+		}
+
 
 
 });
