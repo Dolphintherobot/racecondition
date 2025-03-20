@@ -324,38 +324,6 @@ app.delete("/channel/:id", async (req,res) => {
 
 
 
-async function insertPost(topic,data) {
-
-	let [resp] = await db.query("insert into posts (topic,data) VALUES (?,?)",[topic,data]).catch(err => console.log(err));
-	return {sucess:true,id:resp.id};
-
-
-}
-
-
-
-async function insertResponse(postid,data) {
-
-	let [resp] = await db.query("insert into responses (postId,data) VALUES (?,?)",[postid,data]).catch(err => console.log(err));;
-	return {sucess:true,id:resp.insertId};
-
-
-}
-
-
-
-async function getAllData() {
-
-	let [posts] = await db.query("select * from posts");
-	let [responses] = await db.query("select * from responses");
-
-
-	return {posts,responses};
-
-
-}
-
-
 
 
 app.use(express.static("files"));
