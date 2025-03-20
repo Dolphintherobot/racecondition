@@ -195,6 +195,30 @@ app.get("/channel", async (req,res) => {
 });
 
 
+app.get("/channel/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).send({ message: "No channel ID provided" });
+
+    const query = "SELECT * FROM channel WHERE id = ?";
+
+    try {
+        const [channel] = await sql.query(query, [id]);
+
+        if (channel.length === 0) {
+            return res.status(404).send({ message: "Channel not found" });
+        }
+
+        res.send({ channel: channel[0] });
+    } catch (err) {
+        console.error("Error fetching channel:", err);
+        res.status(500).json({ error: "Failed to fetch channel" });
+    }
+});
+
+
+
+
 
 app.post("/channel",async  (req,res) => { 
 
@@ -339,7 +363,30 @@ app.get("/post", async (req, res) => {
     }
 });
 
-// POST /post
+
+app.get("/post/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).send({ message: "No post ID provided" });
+
+    const query = "SELECT * FROM post WHERE id = ?";
+
+    try {
+        const [post] = await sql.query(query, [id]);
+
+        if (post.length === 0) {
+            return res.status(404).send({ message: "Post not found" });
+        }
+
+        res.send({ post: post[0] });
+    } catch (err) {
+        console.error("Error fetching post:", err);
+        res.status(500).json({ error: "Failed to fetch post" });
+    }
+});
+
+
+
 app.post("/post", async (req, res) => {
     const { topic, description, channelId, photo } = req.body;
     const query = "INSERT INTO post (topic, description, photo, channelId) VALUES (?, ?, ?, ?)";
@@ -418,6 +465,31 @@ app.get("/reply", async (req, res) => {
     }
 });
 
+
+app.get("/reply/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).send({ message: "No reply ID provided" });
+
+    const query = "SELECT * FROM reply WHERE id = ?";
+
+    try {
+        const [reply] = await sql.query(query, [id]);
+
+        if (reply.length === 0) {
+            return res.status(404).send({ message: "Reply not found" });
+        }
+
+        res.send({ reply: reply[0] });
+    } catch (err) {
+        console.error("Error fetching reply:", err);
+        res.status(500).json({ error: "Failed to fetch reply" });
+    }
+});
+
+
+
+
 // POST /reply
 app.post("/reply", async (req, res) => {
     const { topic, description, post_id, reply_id } = req.body;
@@ -491,6 +563,30 @@ app.get("/button", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch buttons" });
     }
 });
+
+app.get("/button/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).send({ message: "No button ID provided" });
+
+    const query = "SELECT * FROM button WHERE id = ?";
+
+    try {
+        const [button] = await sql.query(query, [id]);
+
+        if (button.length === 0) {
+            return res.status(404).send({ message: "Button not found" });
+        }
+
+        res.send({ button: button[0] });
+    } catch (err) {
+        console.error("Error fetching button:", err);
+        res.status(500).json({ error: "Failed to fetch button" });
+    }
+});
+
+
+
 
 app.post("/button", async (req, res) => {
     const { upvotes, post_id } = req.body;
