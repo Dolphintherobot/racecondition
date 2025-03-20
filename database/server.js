@@ -287,7 +287,7 @@ app.put("/channel/:id",async (req,res) => {
 });
 
 
-app.delete("/channle/:id", async (req,res) => {
+app.delete("/channel/:id", async (req,res) => {
 
 	let id = req.params.id;
 
