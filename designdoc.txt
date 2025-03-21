@@ -1,8 +1,8 @@
 design for the project
 
-
-
-
+can leave proxy server for last
+as this way we can focus on concurrency 
+last 
 
 Project:
 design a system that enables users to post programming questions,
@@ -61,17 +61,22 @@ in the join operations I do)
 
 
 table channel:
-primary key id,title,description, main-post-id, date
+primary key id,title,description, date
 
 
 table post:
-primary key id, topic,description,secondary key photo,date  
+primary key id, topic,description,secondary key photo,secondary key channel,date  
 
 table photos (maybe,might be too big):
 primary key id, varbinary photo
 
 table reply:
 primary key id,topic,description,secondary key postId, date
+
+its worth noting here that the secondary key will be of that 
+who created it, not neccesarly a post, it can be a reply too.
+This should not matter as we can create a query to grab
+all replies that have my primary key   
 
 table button:
 primary key id, integer upvotes, secondary key post id
@@ -100,6 +105,9 @@ its very likely I am going to keep the paths the same both in
 the database server and the backend, since both are restful and
 it makes the 2 servers interchangable,which is good design
 
+for specific get requests, will have a secondary key 
+parameter that can be sent via a get requeust that when filled
+out, will grab all values of a cateogory using a secondary key 
 
 
 let url be the url of the server
@@ -112,9 +120,55 @@ URL/channel/query string=?
 
 get put,post,delete a channel with an id 
 URL/channel/id
+post formats need to be in the form of 
+
+{
+title://title of the channel
+description://description of the for the post
+photo://photo if needed for the post 
+ 
+}
+
+replies with 
+{
+postId://key of the post that was created
+channelId: //key of the channel that was created
+date: //timestamp when it was created 
+}
+
+grab all relevant data to a channel (including posts and replies)
+
+url/channel/alldata/:id
+
+
+example format 
+
+{"result":[{"postId":3,"postTopic":"Dabe","postDescription":"31","postDate":"2025-03-20T19:28:19.000Z","channelId":3,"replyId":4,"replyTopic":"Aint got a guy forthat","replyDescription":"31","replyDate":"2025-03-20T20:05:19.000Z","id":2,"upvotes":3,"post_id":3},{"postId":3,"postTopic":"Dabe","postDescription":"31","postDate":"2025-03-20T19:28:19.000Z","channelId":3,"replyId":3,"replyTopic":"Dabe","replyDescription":"31","replyDate":"2025-03-20T20:04:58.000Z","id":2,"upvotes":3,"post_id":3},{"postId":3,"postTopic":"Dabe","postDescription":"31","postDate":"2025-03-20T19:28:19.000Z","channelId":3,"replyId":2,"replyTopic":"Dabe","replyDescription":"31","replyDate":"2025-03-20T19:30:16.000Z","id":2,"upvotes":3,"post_id":3}]}
+
+
+
+this may be more benefical as by sending one large chunk of data
+we can reduce network overhead and roundtrip time, making things 
+much faster
+
+an ideal reply would be 
+{
+channels:[]
+posts:[]
+replies:[]
+} 
+
+the client could just sort this out, or perhaps the server i aint sure 
+yet 
 
 for getting all posts
 URL/posts
+
+getting all posts related to a channel
+URL/posts/channelId
+this would return in order by date, this way we can guarentee that 
+the firstmost post would be the post being read
+
 
 get,put,post,delete a post with an id
 URL/posts/id
@@ -125,9 +179,6 @@ URL/replies
 
 get,put,post,delete a post with an id 
 URL/replies/id
-
-
-
 
 
 
