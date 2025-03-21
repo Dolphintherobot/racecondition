@@ -217,7 +217,50 @@ app.get("/channel/:id", async (req, res) => {
 });
 
 
+app.get("/channelData/:id", async (req,res) => {
+    const { id } = req.params;
 
+    if (!id) return res.status(400).send({ message: "No channel ID provided" });
+
+
+	//TODO FIX THIS QUERY I HAVE NO IDEA WHAT IT DOES
+	const query =`
+SELECT 
+p.id as postId, p.topic as postTopic,p.description as postDescription,
+p.date as postDate,p.channelId,
+r.id as replyId ,r.topic as replyTopic,r.description as replyDescription,
+r.date as replyDate,
+b.id,b.upvotes,b.post_id
+FROM post AS p 
+LEFT JOIN reply AS r ON  p.id = r.post_id
+LEFT JOIN button AS b ON p.id = b.post_id
+WHERE p.channelId = ?
+ORDER BY p.date;
+`
+
+	/*
+    const query = `
+SELECT * FROM posts WHERE channelId = ? ORDER BY date as p
+     LEFT JOIN
+     reply as r 
+     ON r.post_id = p.id
+     LEFT JOIN 
+     reply as r2
+     ON r.reply_id = r.id;
+`;
+
+*/
+	let [result] = await sql.execute(query,[id]);
+	if (result.length == 0) {	
+            return res.status(404).send({ message: "No data found" });
+	}
+
+	res.status(200).json({result});
+	
+ 
+
+
+})
 
 
 app.post("/channel",async  (req,res) => { 
