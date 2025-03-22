@@ -1,9 +1,15 @@
-import {useState,useEffect} from "./react"
+import {useState,useEffect} from "react"
 
 function Response(props) {
 
 	const [responses,changeResponses] = useState([]);
-	
+
+	useEffect(() => {
+
+		getResponses();
+	},[])
+
+
 	let id = props.id
 	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/nestedReply/"+ props.id
@@ -28,6 +34,7 @@ function Response(props) {
 			headers: {"Content-Type":"application/json"},
 			body:JSON.stringify( {
 				reply_id:id,
+				topic:props.topic,
 				description:data,//possible variable shadow bug here
 				post_id: undefined,
 			}
@@ -37,9 +44,9 @@ function Response(props) {
 			}
 			else return response.json();
 
-		}).then(data => 
+		}).then(d => 
 			changeResponses( prev => 
-			prev = [...prev,{description:data,id:data.replyId}] //adds the new document to the array 
+			prev = [...prev,{topic:props.topic,description:data,id:d.replyId}] //adds the new document to the array 
 			) 
 		).catch(err => console.log(err));
 
@@ -81,6 +88,7 @@ function Response(props) {
 		{responses.map( response => 
 			<Response 
 			id = {response.id}
+			topic = {props.topic}
 			description = {response.description} 
 			timestamp =  {response.timestamp}
 			key = {response.id}/>)}

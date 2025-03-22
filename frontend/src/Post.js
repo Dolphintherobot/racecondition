@@ -30,7 +30,8 @@ function Post(props) {
 
 	let id = props.id;
 	let url = process.env.URL || "http://localhost:3002"
-	const URL = url + "/responses/"+ props.id
+	const URL = url + "/reply/"+ props.id
+
 
 	//the response button
 	const [data,changeData] = useState("");
@@ -51,6 +52,7 @@ function Post(props) {
 			body:JSON.stringify( {
 				post_id:id,
 				description:data,//possible variable shadow bug here
+				topic:props.topic,
 				reply_id: undefined,
 			}
 		)}).then(response => {
@@ -59,10 +61,13 @@ function Post(props) {
 			}
 			else return response.json();
 
-		}).then(data => 
+		}).then(d =>{ 
+			
+
+			console.log(data);
 			changeResponses( prev => 
-			prev = [...prev,{description:data,id:data.replyId}] //adds the new document to the array 
-			) 
+			prev = [...prev,{topic:props.topic,description:data,id:d.replyId}] //adds the new document to the array 
+		)} 
 		).catch(err => console.log(err));
 
 
@@ -100,11 +105,12 @@ function Post(props) {
 		<p> {props.data} </p>
 
 		<ul> 
-		{responses.map( response => 
+		{responses.map( response =>
 			<Response 
 			id = {response.id}
 			description = {response.description} 
 			timestamp =  {response.timestamp}
+			topic = {response.topic}
 			key = {response.id}/>)}
 		</ul>
 
