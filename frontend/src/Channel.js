@@ -1,5 +1,5 @@
-import {useState,useEffect} from "./react"
-import Post from ".post"
+import {useState,useEffect} from "react"
+import Post from "./Post.js"
 
 function Channel(props) {
 
@@ -21,14 +21,20 @@ function Channel(props) {
 	
 	function cleanData(data)
 	{
+		//console.log(typeof data);
+
 
 		let newPosts = []
 
-		data.foreach((element) => {
+		data.forEach((element) => {
 		
-			let post = newPosts.find(e => e.postId == element.postId);
+			let post = newPosts.find(e => e.postId == element.id);
+			console.log(post)
 			if (post) {
-			
+	
+				let r  = post.responses.find( e => e.id = element.replyId)
+				if (r) {return;}
+
 				post.responses.push( {
 					id:element.replyId,
 					topic:element.replyTopic,
@@ -47,12 +53,12 @@ function Channel(props) {
 						description:element.replyDescription}],
 					button: {id:element.buttonId,upvotes:element.upvotes}
 				}
-				newPosts.push(posts);
+				newPosts.push(post);
 			}
 
 		});
 
-		changePosts(p => p = p.concat(newPosts);
+		changePosts(p => p = p.concat(newPosts));
 
 	}
 
@@ -66,7 +72,10 @@ function Channel(props) {
 				}
 				else return response.json();
 			}).
-			then(data => cleanData(data.result)).catch(err => console.log(err));
+			then(data => 
+				{
+					cleanData(data.result)
+				}).catch(err => console.log(err));
 
 	}
 
@@ -81,12 +90,13 @@ function Channel(props) {
 
 		{posts.map( p =>
 			{
-				<Post 
+				return <Post 
 				id = {p.id}
 				topic = {p.topic}
 				description = {p.description}
 				responses = {p.responses}
 				button = {p.button}
+				/>
 			}
 		)}
 		</ul>
