@@ -223,14 +223,13 @@ app.get("/channelData/:id", async (req,res) => {
     if (!id) return res.status(400).send({ message: "No channel ID provided" });
 
 
-	//TODO FIX THIS QUERY I HAVE NO IDEA WHAT IT DOES
 	const query =`
 SELECT 
 p.id as postId, p.topic as postTopic,p.description as postDescription,
 p.date as postDate,p.channelId,
 r.id as replyId ,r.topic as replyTopic,r.description as replyDescription,
 r.date as replyDate,
-b.id,b.upvotes,b.post_id
+b.id as buttonId,b.upvotes,b.post_id
 FROM post AS p 
 LEFT JOIN reply AS r ON  p.id = r.post_id
 LEFT JOIN button AS b ON p.id = b.post_id
@@ -529,6 +528,24 @@ app.get("/reply/:id", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch reply" });
     }
 });
+
+
+app.get("/nestedReply/:id", async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).send({ message: "No reply ID provided" });
+
+    const query = "SELECT * FROM reply WHERE reply_id = ?";
+
+    try {
+        const [reply] = await sql.query(query, [id]);
+       	res.send({ reply: reply });
+    } catch (err) {
+        console.error("Error fetching reply:", err);
+        res.status(500).json({ error: "Failed to fetch reply" });
+    }
+});
+
 
 
 
