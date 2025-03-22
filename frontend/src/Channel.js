@@ -5,10 +5,13 @@ function Channel(props) {
 
 	const [posts,changePosts] = useState([]);
 
-	useEffect(() => {getChannelData()
+	useEffect(() => {
+		getChannelData()
 	},[]);
 
 	let id = props.id;
+	let title = props.title;
+	let description = props.description;
 	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/channelData/"+ props.id
 
@@ -63,10 +66,34 @@ function Channel(props) {
 				}
 				else return response.json();
 			}).
-			then(data => cleanData(data)).catch(err => console.log(err));
+			then(data => cleanData(data.result)).catch(err => console.log(err));
 
 	}
 
+
+	return (
+
+		<div>
+
+		<h2> {title} </h2>
+
+		<ul>
+
+		{posts.map( p =>
+			{
+				<Post 
+				id = {p.id}
+				topic = {p.topic}
+				description = {p.description}
+				responses = {p.responses}
+				button = {p.button}
+			}
+		)}
+		</ul>
+
+		</div>
+
+	)
 
 
 
