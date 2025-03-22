@@ -4,20 +4,32 @@ import Response from "./Response.js"
 
 
 
-/*needs its id in the props section*/
+
+/*Properities of a Post should be 
+ {
+ id: //id of the post
+ topic: //topic of the post
+ description: textual description
+ replies: //an array of replies in form of {id:,topic:,description}
+ button: {id:,upvotes}
+ }
+ *
+ * */
 
 function Post(props) {
 
-	const [responses,changeResponses] = useState([]);
+
+
+	const [responses,changeResponses] = useState(props.responses);
 	
 	//use useEffect to trigger some code when a Post component
 	//is mounted on the dom
 	useEffect( () => {
-	getResponses();
+	//getResponses();
 	},[]);
 
 	let id = props.id;
-	let url = process.env.URL || "http://localhost:3001"
+	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/responses/"+ props.id
 
 	//the response button
@@ -33,12 +45,13 @@ function Post(props) {
 	function submitResponse() {
 	
 		let theData = data;
-		fetch(url + "/postresponse", {
+		fetch(url + "/reply", {
 			method: "POST",
 			headers: {"Content-Type":"application/json"},
 			body:JSON.stringify( {
-				postId:id,
-				data:data, //possible variable shadow bug here
+				post_id:id,
+				description:data,//possible variable shadow bug here
+				reply_id: undefined,
 			}
 		)}).then(response => {
 			if (!response.ok) {	
@@ -48,7 +61,7 @@ function Post(props) {
 
 		}).then(data => 
 			changeResponses( prev => 
-			prev = [...prev,{data:theData,_id:data.id}] //adds the new document to the array 
+			prev = [...prev,{description:data,id:data.replyId}] //adds the new document to the array 
 			) 
 		).catch(err => console.log(err));
 
@@ -56,6 +69,10 @@ function Post(props) {
 
 	}
 
+
+
+	//NOTE IF WANT TO USE FUNCTION,
+	//HAS TO BE UPDATED TO WORK WITH CURRENT API 
 	function getResponses() {
 	
 		fetch(URL).then(response => {
@@ -85,9 +102,10 @@ function Post(props) {
 		<ul> 
 		{responses.map( response => 
 			<Response 
-			data = {response.data} 
+			id = {response.id}
+			description = {response.description} 
 			timestamp =  {response.timestamp}
-			key = {response._id}/>)}
+			key = {response.id}/>)}
 		</ul>
 
 		<p>enter in a response</p>
