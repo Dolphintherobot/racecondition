@@ -90,7 +90,8 @@ CREATE TABLE IF NOT EXISTS account (
     username VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     isAdmin INT,
-    FOREIGN KEY (photo_id) REFERENCES photo(id)
+    photo_id INT,
+    FOREIGN KEY (photo_id) REFERENCES photos(id)
 );
 
 
