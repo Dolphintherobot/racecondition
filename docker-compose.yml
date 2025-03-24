@@ -13,21 +13,7 @@ services:
       - "3307:3306"  # External:Internal MySQL port mapping
     volumes:
       - "./mydatabase:/var/lib/mysql" 
-    networks:
-      - app_network  # Add a custom network (optional but recommended)
-  couchdb:
-      image: couchdb:3.4.2
-      container_name: couchdb
-      restart: unless-stopped
-      environment:
-        - COUCHDB_USER=admin
-        - COUCHDB_PASSWORD=password
-      ports:
-        - "5984:5984"
-
-      volumes:
-        - ./couch:/opt/couchdb/data
-  
+ 
   database-backend:
     image: db-backend
     container_name: db-backend
@@ -47,8 +33,6 @@ services:
     depends_on:
       mysql1:
         condition: service_started
-      couchdb: 
-          condition: service_started
 
 
 
