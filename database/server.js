@@ -55,7 +55,9 @@ CREATE TABLE IF NOT EXISTS post (
     photo VARCHAR(255),
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     channelId INT,
-    FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
+    account_id INT,
+    FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
 );
 
 
@@ -71,8 +73,10 @@ CREATE TABLE IF NOT EXISTS reply (
     post_id INT,
     reply_id INT,  -- reference to reply(id) for nested replies
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    account_id INT,
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
+    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
 );
 
 
@@ -83,9 +87,18 @@ CREATE TABLE IF NOT EXISTS button (
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS account (
+    id INT PRIMARY KEY AUTO_INCREMENT, 
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    isAdmin INT,
+    FOREIGN KEY (photo_id) REFERENCES photo(id)
+);
+
+
+
 
 `
-
 
 
 //try grabbing the tables for sql 
