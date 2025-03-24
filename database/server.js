@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS post (
     description TEXT,
     photo VARCHAR(255),
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    author VARCHAR(255,)
+    author VARCHAR(255),
+    channelId INT,
     FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
 );
 
@@ -658,6 +659,98 @@ app.put("/button/:id", async (req, res) => {
         connection.release();
     }
 });
+
+
+/*########################### ACCOUNT CRUD/STUFF ########################*/
+
+
+
+// CRUD Operations for 'account' table
+
+// CREATE - Add a new account
+app.post('/account', async (req, res) => {
+    const { username, password, isAdmin, photo_id } = req.body;
+
+    try {
+        const [result] = await sql.execute(
+            'INSERT INTO account (username, password, isAdmin, photo_id) VALUES (?, ?, ?, ?)',
+            [username, password, isAdmin, photo_id]
+        );
+        res.status(201).json({ id: result.insertId, username, password, isAdmin, photo_id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// READ - Get all accounts
+app.get('/account', async (req, res) => {
+    try {
+        const [rows] = await sql.execute('SELECT * FROM account');
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// READ - Get a specific account by id
+app.get('/account/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [rows] = await sql.execute('SELECT * FROM account WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            res.status(404).send('Account not found');
+        } else {
+            res.json(rows[0]);
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// UPDATE - Update an account's details
+app.put('/account/:id', async (req, res) => {
+    const { id } = req.params;
+    const { username, password, isAdmin, photo_id } = req.body;
+
+    try {
+        const [result] = await sql.execute(
+            'UPDATE account SET username = ?, password = ?, isAdmin = ?, photo_id = ? WHERE id = ?',
+            [username, password, isAdmin, photo_id, id]
+        );
+
+        if (result.affectedRows === 0) {
+            res.status(404).send('Account not found');
+        } else {
+            res.status(200).send('Account updated successfully');
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// DELETE - Delete an account
+app.delete('/account/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [result] = await sql.execute('DELETE FROM account WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            res.status(404).send('Account not found');
+        } else {
+            res.status(200).send('Account deleted successfully');
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
 
 
 
