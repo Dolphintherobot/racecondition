@@ -165,6 +165,7 @@ app.get("/channelData/:id", async (req,res) => {
     if (!id) return res.status(400).send({ message: "No channel ID provided" });
 
 
+	//TODO modify this query to return the accounts as well 
 	const query =`
 SELECT 
 p.id as postId, p.topic as postTopic,p.description as postDescription,
@@ -372,7 +373,7 @@ app.get("/post/:id", async (req, res) => {
 
 
 app.post("/post", async (req, res) => {
-    const { topic, description, channelId, photo } = req.body;
+    const { topic, description, channelId, photo,accountId } = req.body;
     const query = "INSERT INTO post (topic, description, photo, channelId) VALUES (?, ?, ?, ?)";
 
     const connection = await sql.getConnection();
@@ -494,7 +495,7 @@ app.get("/nestedReply/:id", async (req, res) => {
 
 // POST /reply
 app.post("/reply", async (req, res) => {
-    const { topic, description, post_id, reply_id } = req.body;
+    const { topic, description, post_id, reply_id,accountId } = req.body;
     const query = "INSERT INTO reply (topic, description, post_id, reply_id) VALUES (?, ?, ?, ?)";
 
     try {
