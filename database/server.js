@@ -54,10 +54,8 @@ CREATE TABLE IF NOT EXISTS post (
     description TEXT,
     photo VARCHAR(255),
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    channelId INT,
-    account_id INT,
-    FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE,
-    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+    author VARCHAR(255,)
+    FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
 );
 
 
@@ -73,10 +71,9 @@ CREATE TABLE IF NOT EXISTS reply (
     post_id INT,
     reply_id INT,  -- reference to reply(id) for nested replies
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    account_id INT,
+    author VARCHAR(255),
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE,
-    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
 );
 
 
@@ -166,6 +163,7 @@ app.get("/channelData/:id", async (req,res) => {
 
 
 	//TODO modify this query to return the accounts as well 
+	//the alias need to be changed
 	const query =`
 SELECT 
 p.id as postId, p.topic as postTopic,p.description as postDescription,
@@ -373,11 +371,11 @@ app.get("/post/:id", async (req, res) => {
 
 
 app.post("/post", async (req, res) => {
-    const { topic, description, channelId, photo,accountId } = req.body;
-    const query = "INSERT INTO post (topic, description, photo, channelId) VALUES (?, ?, ?, ?)";
+    const { topic, description, channelId, photo,author } = req.body;
+    const query = "INSERT INTO post (topic, description, photo, channelId,author) VALUES (?, ?, ?, ?,?)";
 
     const connection = await sql.getConnection();
-    const [result] = await connection.query(query, [topic, description, photo, channelId]);
+    const [result] = await connection.query(query, [topic, description, photo, channelId,author]);
     res.status(201).send({ postId: result.insertId });
     connection.release();
     
@@ -495,11 +493,11 @@ app.get("/nestedReply/:id", async (req, res) => {
 
 // POST /reply
 app.post("/reply", async (req, res) => {
-    const { topic, description, post_id, reply_id,accountId } = req.body;
-    const query = "INSERT INTO reply (topic, description, post_id, reply_id) VALUES (?, ?, ?, ?)";
+    const { topic, description, post_id, reply_id,author } = req.body;
+    const query = "INSERT INTO reply (topic, description, post_id, reply_id,author) VALUES (?, ?, ?, ?, ?)";
 
     try {
-        const [result] = await sql.query(query, [topic, description, post_id, reply_id]);
+        const [result] = await sql.query(query, [topic, description, post_id, reply_id,author]);
         res.status(201).send({ replyId: result.insertId });
     } catch (err) {
         console.error("Error creating reply:", err);
