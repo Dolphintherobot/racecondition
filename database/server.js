@@ -39,63 +39,6 @@ con.getConnection((err, connection) => {
 });
 
 const sql = con.promise();
-//try connecting to the couchdb database
-//const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
-//const COUCHDB_DB = process.env.COUCHDB_DB || 'questionsdb';
-
-//const nano = require('nano')(COUCHDB_URL)
-//nano.auth("admin","password");
-
-
-/*
-const createTablesQuery = `
-  CREATE TABLE IF NOT EXISTS channel (
-      id INTEGER PRIMARY KEY AUTO_INCREMENT,
-      title VARCHAR(255) NOT NULL,
-      description TEXT,
-      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS post (
-      id INTEGER PRIMARY KEY AUTO_INCREMENT,
-      topic VARCHAR(255) NOT NULL,
-      description TEXT,
-      photo VARCHAR(255),
-      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
-  );
-
-  CREATE INDEX idx_post_photo ON post(photo);
-
-  CREATE TABLE IF NOT EXISTS photos (
-      id INTEGER PRIMARY KEY AUTO_INCREMENT,
-      photo BLOB NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS reply (
-      id INTEGER PRIMARY KEY AUTO_INCREMENT,
-      topic VARCHAR(255) NOT NULL,
-      description TEXT,
-      post_id INTEGER,
-      reply_id INTEGER,
-      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-      FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
-  );
-
-  CREATE INDEX  idx_reply_post_id ON reply(post_id);
-
-  CREATE TABLE IF NOT EXISTS button (
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      upvotes INT DEFAULT 0,
-      post_id INT,
-      FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
-  );
-
-  CREATE INDEX  idx_button_post_id ON button(post_id);
-`;
-*/
-
 
 const createTablesQuery = `
 CREATE TABLE IF NOT EXISTS channel (
@@ -147,20 +90,6 @@ CREATE TABLE IF NOT EXISTS button (
 
 //try grabbing the tables for sql 
 sql.query(createTablesQuery).catch(err => console.log("error with database" + err));
-/*
-try{
-const couch = nano.use(COUCHDB_DB);
-	}
-catch (err) {
-
-	console.log(err);
-	nano.create(COUCHDB_DB);
-	db = nano.use(COUCHDB_DB);
-
-}
-const couch = nano.use(COUCHDB_DB);
-*/
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.text());
 app.use(express.json());
