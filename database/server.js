@@ -107,6 +107,13 @@ app.use(bodyParser.text());
 app.use(express.json());
 app.use(cors());
 
+
+//dummy query for the photos table for now, to satisfy contrasints 
+
+
+sql.query("INSERT INTO photos (photo) VALUES (?)",[1]).catch(err => console.log(err));
+
+
 app.get('/', (req,res) => {
 
 	res.sendFile(path.join(__dirname, '/posting.html'));
@@ -210,7 +217,7 @@ app.post("/channel",async  (req,res) => {
 	let title = req.body.title;
 	let description  = req.body.description;
 	
-	let responseObject = {channelId:0,postId:0,title:title,description,description}
+	let responseObject = {channelId:0,postId:0,title:title,description:description}
 
 	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
 	let postQuery = "INSERT INTO post (topic,description,channelId) VALUES (?,?,?)"
@@ -666,18 +673,18 @@ app.put("/button/:id", async (req, res) => {
 
 
 
-// CRUD Operations for 'account' table
 
 // CREATE - Add a new account
 app.post('/account', async (req, res) => {
     const { username, password, isAdmin, photo_id } = req.body;
 
+	//NOTE photos IS NOT PROGRAMMED IN HERE WOULD NEED A PLAN FOR THAT 
     try {
         const [result] = await sql.execute(
-            'INSERT INTO account (username, password, isAdmin, photo_id) VALUES (?, ?, ?, ?)',
-            [username, password, isAdmin, photo_id]
+            'INSERT INTO account (username, password, isAdmin,photo_id) VALUES (?, ?, ?,?)',
+            [username, password, isAdmin,photo_id]
         );
-        res.status(201).json({ id: result.insertId, username, password, isAdmin, photo_id });
+        res.status(201).json({ id: result.insertId, username, password, isAdmin});
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
