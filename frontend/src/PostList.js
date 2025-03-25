@@ -24,46 +24,58 @@ function PostList(props) {
 
 	
 
-	function handleDataUpdate(event) {
-		changeData(d => d = event.target.value);
+	function handledataupdate(event) {
+		changedata(d => d = event.target.value);
 	}
 
-	function handleTopicUpdate(event) {
-		changeTopic(t => t = event.target.value);
+	function handletopicupdate(event) {
+		changetopic(t => t = event.target.value);
 	}
 
 
 
-	function submitPost() {
+	function submitpost() {
 
-		let theTopic = topic;
-		let theData = data;
-		fetch(url + "/postmessage", {
-			method: "POST",
-			headers: {"Content-Type":"application/json"},
-			body:JSON.stringify( {
-				topic:theTopic,
-				data:theData, //possible variable shadow bug here
+		let thetopic = topic;
+		let thedata = data;
+		fetch(url + "/post", {
+			method: "post",
+			headers: {"content-type":"application/json"},
+			body:json.stringify( {
+				topic:thetopic,
+				data:thedata, //possible variable shadow bug here
+				channelId:id,
 			},
 			)}).then(response => {
 			if (!response.ok) {	
-				throw new Error(`Response status: ${response.status}`)
+				throw new error(`response status: ${response.status}`)
 			}
 			else return response.json();
 
-		}).then(data => {
+		}).then(d => {
 			var x = {
-				topic:theTopic,
-				data:theData,
-				_id:data.id,
+				topic:thetopic,
+				description:thedata,
+				id:d.postId,
+				responses:[],
+				button:0,
 			}
-			changePosts( prev => 
+			changeposts( prev => { 
 			prev = [...prev,x] //adds the new document to the array 	
 		)
 
-			changeTopic(t => t = "");
-			changeData(d => d = "");
+			changetopic(t => t = "");
+			changedata(d => d = "");
 		}).catch(err => console.log(err));
+
+
+
+		<h4> Enter in a post </h4>
+		<input type = "text" onChange = {handleTopicUpdate} value = {topic}
+		placeholder = "enter in a topic"/>
+		<input type = "text" onChange = {handleDataUpdate} value = {data}
+		placeholder = "enter in some data"/>
+		<button onClick = {submitPost}> submit </button>
 
 
 

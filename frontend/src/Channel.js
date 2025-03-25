@@ -1,7 +1,9 @@
 import {useState,useEffect,useContext} from "react"
 import Post from "./Post.js"
 import {UserContext} from "./App.js"
+import DeleteButton from "./DeleteButton.js"
 export default Channel;
+
 
 function Channel(props) {
 
@@ -181,6 +183,7 @@ function Channel(props) {
 		placeholder = "enter in some data"/>
 		<button onClick = {submitPost}> submit </button>
 
+		<DeleteButton/>
 	</div>
 
 	)
