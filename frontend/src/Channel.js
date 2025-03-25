@@ -1,13 +1,26 @@
-import {useState,useEffect} from "react"
+import {useState,useEffect,useContext} from "react"
 import Post from "./Post.js"
+import {UserContext} from "./App.js"
+export default Channel;
 
 function Channel(props) {
 
 	const [posts,changePosts] = useState([]);
 
+	//const user = useContext(UserContext);
 	useEffect(() => {
 		getChannelData()
 	},[]);
+
+	//the data button
+	const [data,changeData] = useState("");
+
+	//the topic button
+	const [topic,changeTopic] = useState("");
+
+
+	
+
 
 	let id = props.id;
 	let title = props.title;
@@ -15,7 +28,63 @@ function Channel(props) {
 	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/channelData/"+ props.id
 
+	let isLoggedIn = props.isLoggedIn;
 	
+
+	function handleDataUpdate(event) {
+		changeData(d => d = event.target.value);
+	}
+
+	function handleTopicUpdate(event) {
+		changeTopic(t => t = event.target.value);
+	}
+
+
+	//TODO FIX THIS FUNCTION SOMETHING IS WRONG HERE
+	function submitPost() {
+
+		let thetopic = topic;
+		let thedata = data;
+		fetch(url + "/post", {
+			method: "POST",
+			headers: {"content-type":"application/json"},
+			body:JSON.stringify( {
+				topic:thetopic,
+				data:thedata, //possible variable shadow bug here
+				channelId:id,
+			},
+			)}).then(response => {
+			if (!response.ok) {	
+				throw new Error(`response status: ${response.status}`)
+			}
+			else return response.json();
+
+		}).then(d => {
+			let x = {
+				topic:thetopic,
+				description:thedata,
+				id:d.postId,
+				responses:[],
+				button:0,
+			}
+			changePosts( prev => { 
+			prev = [...prev,x] //adds the new document to the array 	
+			})
+
+			changeTopic(t => t = "");
+			changeData(d => d = "");
+		}).catch(err => console.log(err));
+
+	}
+
+
+
+
+
+
+
+
+
 	//given some data from the /channelData request
 	//will clean it to put into proper format
 	
@@ -23,16 +92,21 @@ function Channel(props) {
 	{
 		//console.log(typeof data);
 
+		console.log(data);
 
 		let newPosts = []
 
 		data.forEach((element) => {
 		
-			let post = newPosts.find(e => e.postId == element.id);
-			console.log(post)
+			let post = newPosts.find(e => e.id == element.postId);
 			if (post) {
-	
-				let r  = post.responses.find( e => e.id = element.replyId)
+
+				console.log(post)
+			
+				console.log(element.id);
+				console.log("APPENDING");
+
+				let r  = post.responses.find( e => e.id == element.replyId)
 				if (r) {return;}
 
 				post.responses.push( {
@@ -43,6 +117,7 @@ function Channel(props) {
 
 			}
 			else {
+				console.log("CREATING");
 				let post = {
 					id:element.postId,
 					topic:element.postTopic,
@@ -59,6 +134,8 @@ function Channel(props) {
 		});
 
 		changePosts(p => p = p.concat(newPosts));
+
+		console.log(newPosts);
 
 	}
 
@@ -84,7 +161,7 @@ function Channel(props) {
 
 		<div>
 
-		<h2> {title} </h2>
+		<h2> {title} {isLoggedIn} </h2>
 
 		<ul>
 
@@ -100,15 +177,17 @@ function Channel(props) {
 			}
 		)}
 		</ul>
+	
+		<h4> Enter in a post </h4>
+		<input type = "text" onChange = {handleTopicUpdate} value = {topic}
+		placeholder = "enter in a topic"/>
+		<input type = "text" onChange = {handleDataUpdate} value = {data}
+		placeholder = "enter in some data"/>
+		<button onClick = {submitPost}> submit </button>
 
-		</div>
+	</div>
 
 	)
 
-
-
-
-
 }
 
-export default Channel;
