@@ -67,10 +67,13 @@ function Channel(props) {
 				responses:[],
 				button:0,
 			}
+			console.log(x);
 			changePosts( prev => { 
 			prev = [...prev,x] //adds the new document to the array 	
+			return prev;
 			})
 
+			console.log(posts);
 			changeTopic(t => t = "");
 			changeData(d => d = "");
 		}).catch(err => console.log(err));
@@ -92,8 +95,6 @@ function Channel(props) {
 	{
 		//console.log(typeof data);
 
-		console.log(data);
-
 		let newPosts = []
 
 		data.forEach((element) => {
@@ -101,10 +102,7 @@ function Channel(props) {
 			let post = newPosts.find(e => e.id == element.postId);
 			if (post) {
 
-				console.log(post)
 			
-				console.log(element.id);
-				console.log("APPENDING");
 
 				let r  = post.responses.find( e => e.id == element.replyId)
 				if (r) {return;}
@@ -117,7 +115,6 @@ function Channel(props) {
 
 			}
 			else {
-				console.log("CREATING");
 				let post = {
 					id:element.postId,
 					topic:element.postTopic,
@@ -135,7 +132,6 @@ function Channel(props) {
 
 		changePosts(p => p = p.concat(newPosts));
 
-		console.log(newPosts);
 
 	}
 
@@ -161,7 +157,7 @@ function Channel(props) {
 
 		<div>
 
-		<h2> {title} {isLoggedIn} </h2>
+		<h2> {title}  </h2>
 
 		<ul>
 
