@@ -2,7 +2,7 @@ import {useState} from "react"
 
 export function Login() {
 
-
+	//use window.alert(message) to alert the user
 	//the username button
 	const [username,changeUserName] = useState("");
 
@@ -14,7 +14,7 @@ export function Login() {
 
 
 	let url = process.env.URL || "http://localhost:3002"
-	const URL = url + "/createAccount"
+	const URL = url + "/account/verify"
 
 	
 
@@ -27,23 +27,20 @@ export function Login() {
 	}
 
 
-	function createAccount() {
+	function verifyAccount() {
 
 		let uname = username;
 		let pass = password;
-		fetch(url + "/account", {
+		fetch(URL, {
 			method: "POST",
 			headers: {"content-type":"application/json"},
 			body:JSON.stringify( {
 				username:uname,
 				password:pass, 
-				photo:0,
-				photo_id:1,//leave as undefined for now
-				isAdmin:-1,
 			},
 			)}).then(response => {
 			if (!response.ok) {	
-				throw new Error(`response status: ${response.status}`)
+				throw new Error(`Account not verified: ${response.status}`)
 			}
 			else return response.json();
 
@@ -56,8 +53,12 @@ export function Login() {
 
 			changeUserName(u => u = "");
 			changePassword(p => p = "");
+			window.alert("succesful login");
 
-		}).catch(err => console.log(err));
+		}).catch( err => {
+			console.log(err)
+			window.alert(err);
+		});
 
 	}
 
@@ -65,12 +66,13 @@ export function Login() {
 
 	return (
 		<>
+		<h2> login </h2>
 		<h4> Enter in a username and password </h4>
 		<input type = "text" onChange = {handleUserNameUpdate} value = {username}
 		placeholder = "enter in a username"/>
 		<input type = "text" onChange = {handlePasswordUpdate} value = {password}
 		placeholder = "enter in some password"/>
-		<button onClick = {createAccount}> create </button>
+		<button onClick = {verifyAccount}> Login </button>
 		</>
 
 	)
