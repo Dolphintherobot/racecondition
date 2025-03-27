@@ -32,6 +32,8 @@ function Post(props) {
 	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/reply/"+ props.id
 
+	//console.log(props.description);
+	//console.log(id);
 	let username = window.userStatus.username;
 
 	const author = props.author;
@@ -106,7 +108,7 @@ function Post(props) {
 		<div>
 
 		<h2> {props.topic} </h2>
-		<p> {props.data} </p>
+		<p> {props.description} </p>
 		<p> posted by {author} </p>
 		<ul> 
 		{responses.map( response =>
@@ -119,7 +121,7 @@ function Post(props) {
 			key = {response.id}/>)}
 		</ul>
 
-		<p>enter in a response</p>
+		<p>enter in a response to the post</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
 		<button onClick = {submitResponse}> submit </button>
 

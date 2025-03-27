@@ -55,7 +55,7 @@ function Channel(props) {
 			headers: {"content-type":"application/json"},
 			body:JSON.stringify( {
 				topic:thetopic,
-				data:thedata, //possible variable shadow bug here
+				description:thedata, //possible variable shadow bug here
 				channelId:id,
 				author:username,
 			},
