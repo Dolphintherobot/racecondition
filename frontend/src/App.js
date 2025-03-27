@@ -8,7 +8,8 @@ import ChannelList from "./ChannelList.js"
 import Login from "./Login.js"
 import CreateAccount from "./CreateAccount.js"
 import Layout from  "./Layout"
-
+import Search from "./Search"
+import CreateChannel from "./CreateChannel"
 
 //we need a global variable to track the users account information
 //useContext will not work here as it seems to ban all props which I still
@@ -47,8 +48,10 @@ function App() {
 			<Route path = "/test" element = {<Channel id = {x} title = "Dabe" isLoggedIn = {false}/>}/>
 			<Route path = "/Login" element = {<Login/>}/>
 			<Route path = "/CreateAccount" element = {<CreateAccount/>}/>
-			<Route path = "/Search" element = {<ChannelList/>}/>
+			<Route exact path = "/Search/:query" element = {<Search/>}/>
+			<Route exact path = "/Channel/:id/:title/:description" element = {<Channel/>}/>
 			<Route path = "/Landing" element = {<Landing/>}/>
+			<Route path = "/CreateChannel" element = {<CreateChannel/>}/>
 		</Route>
 		</Routes>
 		</Router>
