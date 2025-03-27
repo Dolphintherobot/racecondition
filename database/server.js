@@ -112,7 +112,7 @@ app.use(cors());
 
 
 sql.query("INSERT INTO photos (photo) VALUES (?)",[1]).catch(err => console.log(err));
-
+sql.query("INSERT INTO account (username,password,isAdmin,photo_id) VALUES (?,?,?,?)",["admin","password",1,1]).catch(err => console.log(err));
 
 app.get('/', (req,res) => {
 
