@@ -176,9 +176,9 @@ app.get("/channelData/:id", async (req,res) => {
 	const query =`
 SELECT 
 p.id as postId, p.topic as postTopic,p.description as postDescription,
-p.date as postDate,p.channelId,
+p.date as postDate,p.channelId,p.author as postAuthor,
 r.id as replyId ,r.topic as replyTopic,r.description as replyDescription,
-r.date as replyDate,
+r.date as replyDate, r.author as replyAuthor,
 b.id as buttonId,b.upvotes,b.post_id
 FROM post AS p 
 LEFT JOIN reply AS r ON  p.id = r.post_id
@@ -186,19 +186,6 @@ LEFT JOIN button AS b ON p.id = b.post_id
 WHERE p.channelId = ?
 ORDER BY p.date;
 `
-
-	/*
-    const query = `
-SELECT * FROM posts WHERE channelId = ? ORDER BY date as p
-     LEFT JOIN
-     reply as r 
-     ON r.post_id = p.id
-     LEFT JOIN 
-     reply as r2
-     ON r.reply_id = r.id;
-`;
-
-*/
 	let [result] = await sql.execute(query,[id]);
 	if (result.length == 0) {	
             return res.status(404).send({ message: "No data found" });
@@ -216,18 +203,18 @@ app.post("/channel",async  (req,res) => {
 
 	let title = req.body.title;
 	let description  = req.body.description;
-	
+	let username = req.body.username;
 	let responseObject = {channelId:0,postId:0,title:title,description:description}
 
 	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
-	let postQuery = "INSERT INTO post (topic,description,channelId) VALUES (?,?,?)"
+	let postQuery = "INSERT INTO post (topic,description,channelId,author) VALUES (?,?,?,?)"
 
 	sql.query(channelQuery,[title,description]).
 		then( r => {
 		let [response] = r;	
 		responseObject.channelId = response.insertId
 
-		sql.query(postQuery,[title,description,responseObject.channelId]).
+		sql.query(postQuery,[title,description,responseObject.channelId,username]).
 			then( d =>{
 				let [data] = d;
 				responseObject.postId = data.insertId;
@@ -240,6 +227,34 @@ app.post("/channel",async  (req,res) => {
 
 
 });
+
+
+
+app.post("/channel/search", async (req,res) => {
+
+	const { query } = req.body;
+
+
+	let q = "SELECT * FROM channel WHERE title LIKE CONCAT('%',?,'%') OR description LIKE CONCAT('%',?,'%')"
+
+	sql.query(q,[query,query]).
+		then(d =>  {
+		
+			let [data] = d;
+
+			res.send({channels:data});
+		}).
+		catch(err => {console.log(err)
+
+			res.status(500).send("Internal server error");
+		}) ;
+
+	
+
+});
+
+
+
 
 
 
@@ -690,6 +705,35 @@ app.post('/account', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
+
+
+//check if an account creditionals match the database
+app.post('/account/verify', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const [result] = await sql.execute(
+            'SELECT * FROM account WHERE username = ? AND password = ?',
+            [username, password]
+        );
+	if (result.length  >0 ) {
+		res.status(200).json({ id: result[0].id, username:username, password:password, isAdmin:result[0].isAdmin,});
+	}
+	else {
+		res.status(404).send("Invalid credentails, account not found")
+	}
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+
+
+
 
 // READ - Get all accounts
 app.get('/account', async (req, res) => {
