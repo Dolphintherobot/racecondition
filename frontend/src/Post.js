@@ -32,6 +32,9 @@ function Post(props) {
 	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/reply/"+ props.id
 
+	let username = window.userStatus.username;
+
+	const author = props.author;
 
 	//the response button
 	const [data,changeData] = useState("");
@@ -54,6 +57,7 @@ function Post(props) {
 				description:data,//possible variable shadow bug here
 				topic:props.topic,
 				reply_id: undefined,
+				username:username,
 			}
 		)}).then(response => {
 			if (!response.ok) {	
@@ -66,7 +70,7 @@ function Post(props) {
 
 			console.log(data);
 			changeResponses( prev => 
-			prev = [...prev,{topic:props.topic,description:data,id:d.replyId}] //adds the new document to the array 
+			prev = [...prev,{topic:props.topic,description:data,id:d.replyId,author:username,}] //adds the new document to the array 
 		)} 
 		).catch(err => console.log(err));
 
@@ -103,7 +107,7 @@ function Post(props) {
 
 		<h2> {props.topic} </h2>
 		<p> {props.data} </p>
-
+		<p> posted by {author} </p>
 		<ul> 
 		{responses.map( response =>
 			<Response 
@@ -111,6 +115,7 @@ function Post(props) {
 			description = {response.description} 
 			timestamp =  {response.timestamp}
 			topic = {response.topic}
+			author = {response.author}
 			key = {response.id}/>)}
 		</ul>
 

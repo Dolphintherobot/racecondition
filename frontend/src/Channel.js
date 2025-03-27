@@ -1,9 +1,8 @@
 import {useState,useEffect,useContext} from "react"
 import Post from "./Post.js"
-import {UserContext} from "./App.js"
 import DeleteButton from "./DeleteButton.js"
+import {useParams} from "react-router"
 export default Channel;
-
 
 function Channel(props) {
 
@@ -24,11 +23,16 @@ function Channel(props) {
 	
 
 
+	const {id,title,description}= useParams();
+
+	/*
 	let id = props.id;
 	let title = props.title;
 	let description = props.description;
+	*/
 	let url = process.env.URL || "http://localhost:3002"
-	const URL = url + "/channelData/"+ props.id
+	const URL = url + "/channelData/"+ id
+	let username  = window.userStatus.username;
 
 	let isLoggedIn = props.isLoggedIn;
 	
@@ -42,7 +46,6 @@ function Channel(props) {
 	}
 
 
-	//TODO FIX THIS FUNCTION SOMETHING IS WRONG HERE
 	function submitPost() {
 
 		let thetopic = topic;
@@ -54,6 +57,7 @@ function Channel(props) {
 				topic:thetopic,
 				data:thedata, //possible variable shadow bug here
 				channelId:id,
+				author:username,
 			},
 			)}).then(response => {
 			if (!response.ok) {	
@@ -68,6 +72,7 @@ function Channel(props) {
 				id:d.postId,
 				responses:[],
 				button:0,
+				author:username,
 			}
 			console.log(x);
 			changePosts( prev => { 
@@ -113,6 +118,7 @@ function Channel(props) {
 					id:element.replyId,
 					topic:element.replyTopic,
 					description:element.replyDescription,
+					author:element.replyAuthor,
 				});
 
 			}
@@ -121,10 +127,13 @@ function Channel(props) {
 					id:element.postId,
 					topic:element.postTopic,
 					description:element.postDescription,
+					author:element.postAuthor,
 					responses:[{
 						id:element.replyId,
 						topic:element.replyTopic,
-						description:element.replyDescription}],
+						description:element.replyDescription,
+						author:element.replyAuthor,
+					}],
 					button: {id:element.buttonId,upvotes:element.upvotes}
 				}
 				newPosts.push(post);
@@ -134,11 +143,12 @@ function Channel(props) {
 
 		changePosts(p => p = p.concat(newPosts));
 
+		console.log(newPosts);
 
 	}
 
 	//grabs everything, except nested replies from the backend
-	function getChannelData() {
+	async function getChannelData() {
 
 		fetch(URL).
 			then(response => {
@@ -171,6 +181,7 @@ function Channel(props) {
 				description = {p.description}
 				responses = {p.responses}
 				button = {p.button}
+				author = {p.author}
 				/>
 			}
 		)}
