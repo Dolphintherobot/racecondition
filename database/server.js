@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS post (
     id INT PRIMARY KEY AUTO_INCREMENT,
     topic VARCHAR(255) NOT NULL,
     description TEXT,
-    photo VARCHAR(255),
+    photo BLOB,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     author VARCHAR(255),
     channelId INT,
@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS reply (
     description TEXT,
     post_id INT,
     reply_id INT,  -- reference to reply(id) for nested replies
+    photo BLOB,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     author VARCHAR(255),
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
@@ -166,40 +167,56 @@ app.get("/channel/:id", async (req, res) => {
     }
 });
 
-
-app.get("/channelData/:id", async (req,res) => {
+app.get("/channelData/:id", async (req, res) => {
     const { id } = req.params;
 
     if (!id) return res.status(400).send({ message: "No channel ID provided" });
 
+    // Query to return posts, replies, buttons, and associated photos
+    const query = `
+        SELECT 
+            p.id AS postId, 
+            p.topic AS postTopic,
+            p.description AS postDescription,
+            p.date AS postDate,
+            p.channelId,
+            p.author AS postAuthor,
+            postPhoto.photo AS postPhoto,  -- Select post photo
+            r.id AS replyId,
+            r.topic AS replyTopic,
+            r.description AS replyDescription,
+            r.date AS replyDate,
+            r.author AS replyAuthor,
+            replyPhoto.photo AS replyPhoto,  -- Select reply photo
+            b.id AS buttonId,
+            b.upvotes,
+            b.post_id,
+            acc.id AS accountId,  -- Select account ID
+            acc.username AS accountUsername,  -- Select account username
+            accountPhoto.photo AS accountPhoto  -- Select account photo
+        FROM post AS p
+        LEFT JOIN reply AS r ON p.id = r.post_id
+        LEFT JOIN button AS b ON p.id = b.post_id
+        LEFT JOIN photos AS postPhoto ON p.photoId = postPhoto.id  -- Join to get post photo
+        LEFT JOIN photos AS replyPhoto ON r.photo_id = replyPhoto.id  -- Join to get reply photo
+        LEFT JOIN account AS acc ON p.author = acc.username  -- Join to get account details
+        LEFT JOIN photos AS accountPhoto ON acc.photo_id = accountPhoto.id  -- Join to get account photo
+        WHERE p.channelId = ?
+        ORDER BY p.date;
+    `;
 
-	//TODO modify this query to return the accounts as well 
-	//the alias need to be changed
-	const query =`
-SELECT 
-p.id as postId, p.topic as postTopic,p.description as postDescription,
-p.date as postDate,p.channelId,p.author as postAuthor,
-r.id as replyId ,r.topic as replyTopic,r.description as replyDescription,
-r.date as replyDate, r.author as replyAuthor,
-b.id as buttonId,b.upvotes,b.post_id
-FROM post AS p 
-LEFT JOIN reply AS r ON  p.id = r.post_id
-LEFT JOIN button AS b ON p.id = b.post_id
-WHERE p.channelId = ?
-ORDER BY p.date;
-`
-	let [result] = await sql.execute(query,[id]);
-	if (result.length == 0) {	
+    try {
+        let [result] = await sql.execute(query, [id]);
+        if (result.length === 0) {
             return res.status(404).send({ message: "No data found" });
-	}
+        }
 
-	res.status(200).json({result});
-	
- 
-
-
-})
-
+        res.status(200).json({ result });
+    } catch (error) {
+        console.error("Error executing query:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
 
 app.post("/channel",async  (req,res) => { 
 
@@ -395,48 +412,73 @@ app.get("/post/:id", async (req, res) => {
 });
 
 
+app.post("/post", upload.single("photo"), async (req, res) => {
+    const { topic, description, channelId, author } = req.body;
+    const photo = req.file;  // The uploaded file (photo)
 
-app.post("/post", async (req, res) => {
-    const { topic, description, channelId, photo,author } = req.body;
-    const query = "INSERT INTO post (topic, description, photo, channelId,author) VALUES (?, ?, ?, ?,?)";
+    if (!topic || !description || !channelId || !author) {
+        return res.status(400).send({ message: "Missing required fields" });
+    }
 
-    const connection = await sql.getConnection();
-    const [result] = await connection.query(query, [topic, description, photo, channelId,author]);
-    res.status(201).send({ postId: result.insertId });
-    connection.release();
-    
-});
-
-
-
-app.put("/post/:id", async (req, res) => {
-    const { topic, description} = req.body;
-    const { id } = req.params;
-
-	//for right now make it so we cannot update a photo once it 
-	//has been created, this may change
-    const query = "UPDATE post SET topic = ?, description = ? WHERE id = ?";
-
-    if (!id) return res.status(404).send({ message: "No post ID provided" });
-
-    const connection = await sql.getConnection();
     try {
-        await connection.beginTransaction();
-        const [result] = await connection.query(query, [topic, description, id]);
+        let photoId = null;
+        if (photo) {
+            // Convert the photo file to a buffer (for MySQL storage)
+            const buffer = photo.buffer;
+            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
+            photoId = photoResult.insertId;
+        }
 
-        if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
+        // Insert post into the post table
+        const [postResult] = await sql.execute(
+            "INSERT INTO post (topic, description, channelId, author, photoId) VALUES (?, ?, ?, ?, ?)",
+            [topic, description, channelId, author, photoId]
+        );
 
-        await connection.commit();
-        res.status(204).end();
-    } catch (err) {
-        await connection.rollback();
-        console.error("Error updating post:", err);
-        res.status(500).json({ error: "Failed to update post" });
-    } finally {
-        connection.release();
+        res.status(201).json({
+            message: "Post created successfully",
+            postId: postResult.insertId,
+        });
+    } catch (error) {
+        console.error("Error creating post:", error);
+        res.status(500).send({ message: "Error creating post" });
     }
 });
 
+app.put("/post/:id", upload.single("photo"), async (req, res) => {
+    const { id } = req.params;
+    const { topic, description, author } = req.body;
+    const photo = req.file;  // The uploaded file (photo)
+
+    if (!topic && !description && !author && !photo) {
+        return res.status(400).send({ message: "Nothing to update" });
+    }
+
+    try {
+        let photoId = null;
+        if (photo) {
+            // Insert the new photo into the photos table
+            const buffer = photo.buffer;
+            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
+            photoId = photoResult.insertId;
+        }
+
+        // Update the post with new values
+        const [updateResult] = await sql.execute(
+            "UPDATE post SET topic = ?, description = ?, author = ?, photoId = ? WHERE id = ?",
+            [topic, description, author, photoId, id]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).send({ message: "Post not found" });
+        }
+
+        res.status(200).json({ message: "Post updated successfully" });
+    } catch (error) {
+        console.error("Error updating post:", error);
+        res.status(500).send({ message: "Error updating post" });
+    }
+});
 
 app.delete("/post/:id", async (req, res) => {
     const { id } = req.params;
@@ -518,18 +560,40 @@ app.get("/nestedReply/:id", async (req, res) => {
 
 
 // POST /reply
-app.post("/reply", async (req, res) => {
-    const { topic, description, post_id, reply_id,author } = req.body;
-    const query = "INSERT INTO reply (topic, description, post_id, reply_id,author) VALUES (?, ?, ?, ?, ?)";
+app.post("/reply", upload.single("photo"), async (req, res) => {
+    const { topic, description, postId, author } = req.body;
+    const photo = req.file;  // The uploaded file (photo)
+
+    if (!topic || !description || !postId || !author) {
+        return res.status(400).send({ message: "Missing required fields" });
+    }
 
     try {
-        const [result] = await sql.query(query, [topic, description, post_id, reply_id,author]);
-        res.status(201).send({ replyId: result.insertId });
-    } catch (err) {
-        console.error("Error creating reply:", err);
-        res.status(500).json({ error: "Failed to create reply" });
+        let photoId = null;
+        if (photo) {
+            // Convert the photo file to a buffer (for MySQL storage)
+            const buffer = photo.buffer;
+            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
+            photoId = photoResult.insertId;
+        }
+
+        // Insert reply into the reply table
+        const [replyResult] = await sql.execute(
+            "INSERT INTO reply (topic, description, post_id, author, photo_id) VALUES (?, ?, ?, ?, ?)",
+            [topic, description, postId, author, photoId]
+        );
+
+        res.status(201).json({
+            message: "Reply created successfully",
+            replyId: replyResult.insertId,
+        });
+    } catch (error) {
+        console.error("Error creating reply:", error);
+        res.status(500).send({ message: "Error creating reply" });
     }
 });
+
+
 
 // DELETE /reply/:id
 app.delete("/reply/:id", async (req, res) => {
