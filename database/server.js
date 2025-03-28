@@ -52,17 +52,17 @@ CREATE TABLE IF NOT EXISTS post (
     id INT PRIMARY KEY AUTO_INCREMENT,
     topic VARCHAR(255) NOT NULL,
     description TEXT,
-    photo BLOB,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     author VARCHAR(255),
     channelId INT,
+    photoId INT,
     FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
 );
 
 
 CREATE TABLE IF NOT EXISTS photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    photo BLOB NOT NULL
+    photo MEDUIMBLOB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS reply (
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS reply (
     description TEXT,
     post_id INT,
     reply_id INT,  -- reference to reply(id) for nested replies
-    photo BLOB,
+    photo_id INT,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     author VARCHAR(255),
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
@@ -95,10 +95,10 @@ CREATE TABLE IF NOT EXISTS account (
     FOREIGN KEY (photo_id) REFERENCES photos(id)
 );
 
-
-
-
 `
+
+const multer = require('multer');
+
 
 
 //try grabbing the tables for sql 
