@@ -119,6 +119,7 @@ function Channel(props) {
 					topic:element.replyTopic,
 					description:element.replyDescription,
 					author:element.replyAuthor,
+					photo:element.replyPhoto,
 				});
 
 			}
@@ -128,11 +129,13 @@ function Channel(props) {
 					topic:element.postTopic,
 					description:element.postDescription,
 					author:element.postAuthor,
+					photo:element.postPhoto,
 					responses:[{
 						id:element.replyId,
 						topic:element.replyTopic,
 						description:element.replyDescription,
 						author:element.replyAuthor,
+						photo:element.postPhoto,
 					}],
 					button: {id:element.buttonId,upvotes:element.upvotes}
 				}
@@ -194,7 +197,7 @@ function Channel(props) {
 		placeholder = "enter in some data"/>
 		<button onClick = {submitPost}> submit </button>
 
-		<DeleteButton/>
+		<DeleteButton id = {id} type = {"channel"}/>
 	</div>
 
 	)
