@@ -107,6 +107,8 @@ app.use(bodyParser.text());
 app.use(express.json());
 app.use(cors());
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 //dummy query for the photos table for now, to satisfy contrasints 
 
@@ -802,7 +804,91 @@ app.delete('/account/:id', async (req, res) => {
     }
 });
 
+//##################### PHOTO CRUD ######################
 
+app.post("/photo", upload.single("photo"), (req, res) => {
+    if (!req.file) {
+        return res.status(400).send({ message: "No photo file uploaded" });
+    }
+
+    // Get the binary data from the uploaded photo
+    const photoBuffer = req.file.buffer;
+
+    // Insert the photo into the database
+    const query = "INSERT INTO photos (photo) VALUES (?)";
+    db.query(query, [photoBuffer], (err, result) => {
+        if (err) {
+            console.error("Error uploading photo:", err);
+            return res.status(500).json({ error: "Failed to upload photo" });
+        }
+        res.status(201).json({ photoId: result.insertId, message: "Photo uploaded successfully" });
+    });
+});
+
+// Read a photo by ID (GET /photo/:id)
+app.get("/photo/:id", (req, res) => {
+    const { id } = req.params;
+
+    const query = "SELECT photo FROM photos WHERE id = ?";
+    db.query(query, [id], (err, result) => {
+        if (err) {
+            console.error("Error retrieving photo:", err);
+            return res.status(500).json({ error: "Failed to retrieve photo" });
+        }
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        // Send the photo buffer as a response
+        res.set("Content-Type", "image/jpeg");  // Adjust according to image type
+        res.send(result[0].photo);
+    });
+});
+
+// Update a photo by ID (PUT /photo/:id)
+app.put("/photo/:id", upload.single("photo"), (req, res) => {
+    const { id } = req.params;
+
+    if (!req.file) {
+        return res.status(400).send({ message: "No photo file uploaded" });
+    }
+
+    const photoBuffer = req.file.buffer;
+
+    const query = "UPDATE photos SET photo = ? WHERE id = ?";
+    db.query(query, [photoBuffer, id], (err, result) => {
+        if (err) {
+            console.error("Error updating photo:", err);
+            return res.status(500).json({ error: "Failed to update photo" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        res.status(200).json({ message: "Photo updated successfully" });
+    });
+});
+
+// Delete a photo by ID (DELETE /photo/:id)
+app.delete("/photo/:id", (req, res) => {
+    const { id } = req.params;
+
+    const query = "DELETE FROM photos WHERE id = ?";
+    db.query(query, [id], (err, result) => {
+        if (err) {
+            console.error("Error deleting photo:", err);
+            return res.status(500).json({ error: "Failed to delete photo" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+
+        res.status(200).json({ message: "Photo deleted successfully" });
+    });
+});
 
 
 
