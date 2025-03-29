@@ -1,8 +1,8 @@
 import {useState} from "react"
 import {useEffect} from "react"
 import Response from "./Response.js"
-
-
+import DeleteButton from "./DeleteButton.js"
+import {Buffer} from "buffer";
 
 
 /*Properities of a Post should be 
@@ -20,6 +20,7 @@ function Post(props) {
 
 
 
+	console.log(props.photo);
 	const [responses,changeResponses] = useState(props.responses);
 	
 	//use useEffect to trigger some code when a Post component
@@ -109,6 +110,7 @@ function Post(props) {
 
 		<h2> {props.topic} </h2>
 		<p> {props.description} </p>
+		<Photo photo = {props.photo}/>
 		<p> posted by {author} </p>
 		<ul> 
 		{responses.map( response =>
@@ -124,7 +126,7 @@ function Post(props) {
 		<p>enter in a response to the post</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
 		<button onClick = {submitResponse}> submit </button>
-
+		<DeleteButton id = {id} type = {"post"} />
 		</div>
 
 
@@ -133,12 +135,34 @@ function Post(props) {
 
 
 
+}
 
 
+function Photo(props) {
+    const [photoBase64, setPhotoBase64] = useState(null);
 
+    // This function converts Buffer to Base64 and updates state
+    function convertBufferToBase64(bufferData) {
+        // Convert buffer to base64 string
+        const base64String = bufferData.toString('base64');
+        setPhotoBase64(base64String);
+    }
 
+    useEffect(() => {
+        if (props.photo && props.photo.data) {
+            // If photo data exists, convert it to base64
+            const bufferData = Buffer.from(props.photo.data);
+            convertBufferToBase64(bufferData);
+        }
+    }, [props.photo]);
 
-
+    return (
+        photoBase64 ? (
+            <img src={`data:image/jpeg;base64,${photoBase64}`} alt="Account Photo" />
+        ) : (
+            <p>No photo available</p>
+        )
+    );
 }
 
 export default Post;

@@ -18,7 +18,7 @@ function Channel(props) {
 
 	//the topic button
 	const [topic,changeTopic] = useState("");
-
+	const [photo,changePhoto] = useState(null);
 
 	
 
@@ -45,21 +45,32 @@ function Channel(props) {
 		changeTopic(t => t = event.target.value);
 	}
 
+	function fileChangedHandler(event) {
+  		changePhoto(p => p = event.target.files[0])
+	}
+
+
 
 	function submitPost() {
+
+		let formData = new FormData();
+    		formData.append("topic",topic);
+    		formData.append("description", data);
+    		formData.append("channelId", id); 
+    		formData.append("author", username); 
+		
+		let photoInput = photo;
+		if (photoInput) {
+        		formData.append("photo", photoInput);
+    }
+
 
 		let thetopic = topic;
 		let thedata = data;
 		fetch(url + "/post", {
 			method: "POST",
-			headers: {"content-type":"application/json"},
-			body:JSON.stringify( {
-				topic:thetopic,
-				description:thedata, //possible variable shadow bug here
-				channelId:id,
-				author:username,
-			},
-			)}).then(response => {
+			body:formData			
+		}).then(response => {
 			if (!response.ok) {	
 				throw new Error(`response status: ${response.status}`)
 			}
@@ -73,6 +84,7 @@ function Channel(props) {
 				responses:[],
 				button:0,
 				author:username,
+				photo:photoInput,
 			}
 			console.log(x);
 			changePosts( prev => { 
@@ -185,6 +197,7 @@ function Channel(props) {
 				responses = {p.responses}
 				button = {p.button}
 				author = {p.author}
+				photo = {p.photo}
 				/>
 			}
 		)}
@@ -195,6 +208,9 @@ function Channel(props) {
 		placeholder = "enter in a topic"/>
 		<input type = "text" onChange = {handleDataUpdate} value = {data}
 		placeholder = "enter in some data"/>
+		<h4> enter a file to upload </h4>
+		<input type="file" onChange={fileChangedHandler}/>
+		<button >Upload!</button>
 		<button onClick = {submitPost}> submit </button>
 
 		<DeleteButton id = {id} type = {"channel"}/>
