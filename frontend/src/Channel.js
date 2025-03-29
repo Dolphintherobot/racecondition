@@ -45,11 +45,6 @@ function Channel(props) {
 		changeTopic(t => t = event.target.value);
 	}
 
-	function fileChangedHandler(event) {
-  		changePhoto(p => p = event.target.files[0])
-	}
-
-
 
 	function submitPost() {
 
@@ -86,13 +81,13 @@ function Channel(props) {
 				author:username,
 				photo:photoInput,
 			}
-			console.log(x);
+			//console.log(x);
 			changePosts( prev => { 
 			prev = [...prev,x] //adds the new document to the array 	
 			return prev;
 			})
 
-			console.log(posts);
+			//console.log(posts);
 			changeTopic(t => t = "");
 			changeData(d => d = "");
 		}).catch(err => console.log(err));
@@ -209,8 +204,7 @@ function Channel(props) {
 		<input type = "text" onChange = {handleDataUpdate} value = {data}
 		placeholder = "enter in some data"/>
 		<h4> enter a file to upload </h4>
-		<input type="file" onChange={fileChangedHandler}/>
-		<button >Upload!</button>
+		<PhotoForm photo = {photo} changePhoto = {changePhoto} />
 		<button onClick = {submitPost}> submit </button>
 
 		<DeleteButton id = {id} type = {"channel"}/>
@@ -219,4 +213,27 @@ function Channel(props) {
 	)
 
 }
+
+
+
+
+
+
+export function PhotoForm(props) {
+
+	//pass in useState stuff into props
+	const {photo,changePhoto} = props;
+
+	function fileChangedHandler(event) {
+  		changePhoto(p => p = event.target.files[0])
+	}
+
+return (
+	<div>
+	<input type="file" onChange={fileChangedHandler}/>	
+	</div>
+	)
+}
+
+
 
