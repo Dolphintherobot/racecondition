@@ -120,6 +120,7 @@ function Post(props) {
 			timestamp =  {response.timestamp}
 			topic = {response.topic}
 			author = {response.author}
+			photo = {response.photo}
 			key = {response.id}/>)}
 		</ul>
 
@@ -138,7 +139,8 @@ function Post(props) {
 }
 
 
-function Photo(props) {
+
+export function Photo(props) {
     const [photoBase64, setPhotoBase64] = useState(null);
 
     // This function converts Buffer to Base64 and updates state
@@ -164,5 +166,6 @@ function Photo(props) {
         )
     );
 }
+
 
 export default Post;
