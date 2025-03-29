@@ -3,7 +3,7 @@ import {useEffect} from "react"
 import Response from "./Response.js"
 import DeleteButton from "./DeleteButton.js"
 import {Buffer} from "buffer";
-
+import {PhotoForm} from "./Channel.js"
 
 /*Properities of a Post should be 
  {
@@ -20,9 +20,10 @@ function Post(props) {
 
 
 
-	console.log(props.photo);
+	//console.log(props.photo);
 	const [responses,changeResponses] = useState(props.responses);
-	
+	const [photo,changePhoto] = useState(null);
+
 	//use useEffect to trigger some code when a Post component
 	//is mounted on the dom
 	useEffect( () => {
@@ -50,19 +51,23 @@ function Post(props) {
 
 
 	function submitResponse() {
-	
-		let theData = data;
+
+		let formdata = new FormData()
+		formdata.append("postId",id);
+		formdata.append("description",data);
+		formdata.append("topic",props.topic);
+		formdata.append("author",username);
+		
+		if (photo) {
+			formdata.append("photo",photo);
+
+		}
+
+
 		fetch(url + "/reply", {
 			method: "POST",
-			headers: {"Content-Type":"application/json"},
-			body:JSON.stringify( {
-				post_id:id,
-				description:data,//possible variable shadow bug here
-				topic:props.topic,
-				reply_id: undefined,
-				username:username,
-			}
-		)}).then(response => {
+			body:formdata,
+		}).then(response => {
 			if (!response.ok) {	
 				throw new Error(`Response status: ${response.status}`)
 			}
@@ -71,7 +76,7 @@ function Post(props) {
 		}).then(d =>{ 
 			
 
-			console.log(data);
+			//console.log(data);
 			changeResponses( prev => 
 			prev = [...prev,{topic:props.topic,description:data,id:d.replyId,author:username,}] //adds the new document to the array 
 		)} 
@@ -126,6 +131,7 @@ function Post(props) {
 
 		<p>enter in a response to the post</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
+		<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
 		<button onClick = {submitResponse}> submit </button>
 		<DeleteButton id = {id} type = {"post"} />
 		</div>
@@ -155,7 +161,7 @@ function Photo(props) {
         reader.readAsDataURL(file);  // This converts file to base64 format
     }
 
-	console.log(props.photo);
+	//console.log(props.photo);
 	useEffect(() => {
         if (props.photo instanceof File) {
             // If the photo is directly a File (not FormData), convert it to base64
