@@ -454,9 +454,12 @@ app.post("/post", upload.single("photo"), async (req, res) => {
             [topic, description, channelId, author, photoId]
         );
 
+	const [postButton] = await sql.execute(
+		"INSERT INTO replyButton (upvotes,reply_id) (0,?)",[postResult.insertId]);
         res.status(201).json({
             message: "Post created successfully",
             postId: postResult.insertId,
+	    postButton:postButton.insertId,
         });
     } catch (error) {
         console.error("Error creating post:", error);
@@ -606,9 +609,12 @@ app.post("/reply", upload.single("photo"), async (req, res) => {
             [topic, description, postId, author, photoId,reply_id]
         );
 
+	    const [replyButton] = await sql.execute(
+		    "INSERT INTO replyButton (upvotes,reply_id) (0,?)",[replyResult.insertId]);
         res.status(201).json({
             message: "Reply created successfully",
             replyId: replyResult.insertId,
+	    buttonId: replyButton.insertId,
         });
     } catch (error) {
         console.error("Error creating reply:", error);
