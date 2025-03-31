@@ -35,11 +35,11 @@ function Response(props) {
 
 	function submitResponse() {
 		let formdata = new FormData()
-		formdata.append("postId",id);
+		formdata.append("reply_id",id);
 		formdata.append("description",data);
 		formdata.append("topic",props.topic);
 		formdata.append("author",username);
-		
+		formdata.append("postId",-1);
 		if (photo) {
 			formdata.append("photo",photo);
 
@@ -96,7 +96,7 @@ function Response(props) {
 
 
 
-	return (
+	return ( id != null ?
 		<>
 		<p> {props.description}  </p>
 		<Photo photo = {props.photo}/>
@@ -113,11 +113,12 @@ function Response(props) {
 		</ul>
 		<p>enter in a  reply to the response</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
-		<PhotoForm photo = {props.photo} changePhoto = {props.changePhoto}/>
+		<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
 		<button onClick = {submitResponse}> submit </button>	
 		<ResponseAuthor author = {props.author}/>
 		<DeleteButton id = {id} type = {"reply"}/>
-		</>
+		</> :
+		<></>
 	);
 
 }
