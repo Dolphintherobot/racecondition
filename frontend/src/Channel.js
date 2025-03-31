@@ -142,7 +142,7 @@ function Channel(props) {
 						topic:element.replyTopic,
 						description:element.replyDescription,
 						author:element.replyAuthor,
-						photo:element.postPhoto,
+						photo:element.replyPhoto,
 					}],
 					button: {id:element.buttonId,upvotes:element.upvotes}
 				}
