@@ -74,8 +74,6 @@ CREATE TABLE IF NOT EXISTS reply (
     photo_id INT,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     author VARCHAR(255),
-    (post_id) REFERENCES post(id) ON DELETE CASCADE,
-    (reply_id) REFERENCES reply(id) ON DELETE CASCADE
 );
 
 
