@@ -1,8 +1,13 @@
 import {useState,useEffect} from "react"
+import ResponseAuthor from "./ResponseAuthor"
+import DeleteButton from "./DeleteButton"
+import { Photo } from "./Post"
+import {PhotoForm} from "./Channel"
 
 function Response(props) {
 
 	const [responses,changeResponses] = useState([]);
+	const [photo,changePhoto] = useState(null); 
 
 	useEffect(() => {
 
@@ -16,6 +21,8 @@ function Response(props) {
 
 	let description = props.description;
 
+	const author = props.author
+	const username  = window.userStatus.username
 	//the response button
 	const [data,changeData] = useState("");
 
@@ -37,6 +44,8 @@ function Response(props) {
 				topic:props.topic,
 				description:data,//possible variable shadow bug here
 				post_id: undefined,
+				author:username,
+				photo:photo,
 			}
 		)}).then(response => {
 			if (!response.ok) {	
@@ -46,7 +55,8 @@ function Response(props) {
 
 		}).then(d => 
 			changeResponses( prev => 
-			prev = [...prev,{topic:props.topic,description:data,id:d.replyId}] //adds the new document to the array 
+			prev = [...prev,{topic:props.topic,description:data,id:d.replyId,
+			author:username,photo}] //adds the new document to the array 
 			) 
 		).catch(err => console.log(err));
 
@@ -84,6 +94,7 @@ function Response(props) {
 	return (
 		<>
 		<p> {props.description}  </p>
+		<Photo photo = {props.photo}/>
 		<ul> 
 		{responses.map( response => 
 			<Response 
@@ -91,11 +102,16 @@ function Response(props) {
 			topic = {props.topic}
 			description = {response.description} 
 			timestamp =  {response.timestamp}
-			key = {response.id}/>)}
+			photo = {response.photo}
+			key = {response.id}
+			/>)}
 		</ul>
-		<p>enter in a response</p>
+		<p>enter in a  reply to the response</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
-		<button onClick = {submitResponse}> submit </button>
+		<PhotoForm photo = {props.photo} changePhoto = {props.changePhoto}/>
+		<button onClick = {submitResponse}> submit </button>	
+		<ResponseAuthor author = {props.author}/>
+		<DeleteButton id = {id} type = {"reply"}/>
 		</>
 	);
 
