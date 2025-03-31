@@ -38,7 +38,7 @@ function Response(props) {
 		formdata.append("reply_id",id);
 		formdata.append("description",data);
 		formdata.append("topic",props.topic);
-		formdata.append("author",username);
+		formdata.append("author",author);
 		formdata.append("postId",-1);
 		if (photo) {
 			formdata.append("photo",photo);
@@ -92,6 +92,8 @@ function Response(props) {
 
 
 
+		//if want nested reply photos
+		//<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
 
 
 
@@ -113,7 +115,6 @@ function Response(props) {
 		</ul>
 		<p>enter in a  reply to the response</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
-		<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
 		<button onClick = {submitResponse}> submit </button>	
 		<ResponseAuthor author = {props.author}/>
 		<DeleteButton id = {id} type = {"reply"}/>
