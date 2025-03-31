@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS post (
 
 CREATE TABLE IF NOT EXISTS photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    photo MEDUIMBLOB NOT NULL
+    photo MEDIUMBLOB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS reply (
@@ -102,7 +102,6 @@ const multer = require('multer');
 
 
 //try grabbing the tables for sql 
-sql.query(createTablesQuery).catch(err => console.log("error with database" + err));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.text());
 app.use(express.json());
@@ -114,8 +113,20 @@ const upload = multer({ storage: storage });
 //dummy query for the photos table for now, to satisfy contrasints 
 
 
-sql.query("INSERT INTO photos (photo) VALUES (?)",[1]).catch(err => console.log(err));
-sql.query("INSERT INTO account (username,password,isAdmin,photo_id) VALUES (?,?,?,?)",["admin","password",1,1]).catch(err => console.log(err));
+
+//just fires up some basic sql queries in order
+async function setUp() {
+
+await sql.query(createTablesQuery).catch(err => console.log("error with database" + err));
+await sql.query("INSERT INTO photos (photo) VALUES (?)",[1]).catch(err => console.log(err));
+await sql.query("INSERT INTO account (username,password,isAdmin,photo_id) VALUES (?,?,?,?)",["admin","password",1,1]).catch(err => console.log(err));
+
+
+}
+
+
+setUp();
+
 
 app.get('/', (req,res) => {
 
@@ -561,11 +572,13 @@ app.get("/nestedReply/:id", async (req, res) => {
 
 // POST /reply
 app.post("/reply", upload.single("photo"), async (req, res) => {
-    const { topic, description, postId, author } = req.body;
+    const { topic, description, postId, author,reply_id } = req.body;
     const photo = req.file;  // The uploaded file (photo)
 
-    if (!topic || !description || !postId || !author) {
-        return res.status(400).send({ message: "Missing required fields" });
+    if (!topic || !description || (!postId && !reply_id) || !author) {
+    
+	    console.log("Misiing field");
+	    return res.status(400).send({ message: "Missing required fields" });
     }
 
     try {
@@ -579,8 +592,8 @@ app.post("/reply", upload.single("photo"), async (req, res) => {
 
         // Insert reply into the reply table
         const [replyResult] = await sql.execute(
-            "INSERT INTO reply (topic, description, post_id, author, photo_id) VALUES (?, ?, ?, ?, ?)",
-            [topic, description, postId, author, photoId]
+            "INSERT INTO reply (topic, description, post_id, author, photo_id,reply_id) VALUES (?, ?, ?, ?, ?,?)",
+            [topic, description, postId, author, photoId,reply_id]
         );
 
         res.status(201).json({
