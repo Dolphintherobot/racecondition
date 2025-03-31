@@ -34,20 +34,25 @@ function Response(props) {
 
 
 	function submitResponse() {
-	
+		let formdata = new FormData()
+		formdata.append("postId",id);
+		formdata.append("description",data);
+		formdata.append("topic",props.topic);
+		formdata.append("author",username);
+		
+		if (photo) {
+			formdata.append("photo",photo);
+
+		}
+
+
+
+
 		let theData = data;
 		fetch(url + "/reply", {
 			method: "POST",
-			headers: {"Content-Type":"application/json"},
-			body:JSON.stringify( {
-				reply_id:id,
-				topic:props.topic,
-				description:data,//possible variable shadow bug here
-				post_id: undefined,
-				author:username,
-				photo:photo,
-			}
-		)}).then(response => {
+			body:formdata,
+		}).then(response => {
 			if (!response.ok) {	
 				throw new Error(`Response status: ${response.status}`)
 			}
