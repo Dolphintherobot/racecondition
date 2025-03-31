@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS reply (
     reply_id INT,  -- reference to reply(id) for nested replies
     photo_id INT,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    author VARCHAR(255),
+    author VARCHAR(255)
 );
 
 
@@ -92,6 +92,16 @@ CREATE TABLE IF NOT EXISTS account (
     photo_id INT,
     FOREIGN KEY (photo_id) REFERENCES photos(id)
 );
+
+CREATE TABLE IF NOT EXISTS replyButton (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    upvotes INT DEFAULT 0,
+    reply_id INT,
+    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
+);
+
+
+
 
 `
 
@@ -967,6 +977,80 @@ app.delete("/photo/:id", (req, res) => {
     });
 });
 
+// Create Reply Button
+app.post('/replyButton', async (req, res) => {
+    const { reply_id, upvotes } = req.body;
+    try {
+        const [result] = await sql.execute(
+            'INSERT INTO replyButton (reply_id, upvotes) VALUES (?, ?)',
+            [reply_id, upvotes]
+        );
+        res.status(201).json({ id: result.insertId, reply_id, upvotes });
+    } catch (error) {
+        console.error('Error creating reply button:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Get all Reply Buttons
+app.get('/replyButton', async (req, res) => {
+    try {
+        const [rows] = await sql.execute('SELECT * FROM replyButton');
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error('Error fetching reply buttons:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Get Reply Button by ID
+app.get('/replyButton/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await sql.execute('SELECT * FROM replyButton WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Reply button not found' });
+        }
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching reply button:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Update Reply Button
+app.put('/replyButton/:id', async (req, res) => {
+    const { id } = req.params;
+    const { upvotes } = req.body;
+    try {
+        const [result] = await sql.execute(
+            'UPDATE replyButton SET upvotes = ? WHERE id = ?',
+            [upvotes, id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Reply button not found' });
+        }
+        res.status(200).json({ message: 'Reply button updated', upvotes });
+    } catch (error) {
+        console.error('Error updating reply button:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Delete Reply Button
+app.delete('/replyButton/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await sql.execute('DELETE FROM replyButton WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Reply button not found' });
+        }
+        res.status(200).json({ message: 'Reply button deleted' });
+    } catch (error) {
+        console.error('Error deleting reply button:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
 
 
 
