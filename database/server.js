@@ -74,8 +74,8 @@ CREATE TABLE IF NOT EXISTS reply (
     photo_id INT,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     author VARCHAR(255),
-    FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
+    (post_id) REFERENCES post(id) ON DELETE CASCADE,
+    (reply_id) REFERENCES reply(id) ON DELETE CASCADE
 );
 
 
@@ -575,9 +575,11 @@ app.post("/reply", upload.single("photo"), async (req, res) => {
     const { topic, description, postId, author,reply_id } = req.body;
     const photo = req.file;  // The uploaded file (photo)
 
-    if (!topic || !description || (!postId && !reply_id) || !author) {
-    
-	    console.log("Misiing field");
+    if (!topic || !description || (postId == null && reply_id == null) || !author) {
+  
+	    console.log(postId);
+	    console.log(reply_id);
+	    console.log("Missing field");
 	    return res.status(400).send({ message: "Missing required fields" });
     }
 
