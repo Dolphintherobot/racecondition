@@ -241,15 +241,17 @@ app.post("/channel",async  (req,res) => {
 	let title = req.body.title;
 	let description  = req.body.description;
 	let username = req.body.username;
-	let responseObject = {channelId:0,postId:0,title:title,description:description}
+	let photo = req.body.photo;
+	let response = {channelId:0,postId:0,title:title,description:description}
 
-	let r = {}
 	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
 	let postQuery = "INSERT INTO post (topic,description,channelId,author) VALUES (?,?,?,?)"
 
-	let [r] = awaitsql.query(channelQuery,[title,description]).
+
+	let r = await sql.query(channelQuery,[title,description])
+	r = r[0]
 	response.channelId = r.insertId
-	result = await createPost(topic,description,channelId,author,photo);
+	let result = await createPost(title,description,response.channelId,username,photo);
 	response.postId = result.postId;
 	response.postButtonId = result.postButtonId;
 	response.title = title;
@@ -522,14 +524,23 @@ async function createPost(topic,description,channelId,author,photo) {
         );
 
 	const [postButton] = await sql.execute(
-		"INSERT INTO replyButton (upvotes,reply_id) (0,?)",[postResult.insertId]);
+		"INSERT INTO button (post_id) VALUES (?)",[postResult.insertId]);
        return  {
             message: "Post created successfully",
             postId: postResult.insertId,
 	    postButtonId:postButton.insertId,
-        })
+        }
 
     }
+	catch (err) {
+
+		console.log("error creating post" + err);
+		return {
+			message:"Error in creating post" + err,
+		}
+
+	}
+
 
 
 }
