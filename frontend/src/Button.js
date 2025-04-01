@@ -13,7 +13,7 @@ function Button(props) {
 	
 	let url = process.env.URL || "http://localhost:3002"
 
-	console.log("My Id is " + id)
+	//console.log("My Id is " + id)
 	let URL = ""
 	if (props.postId) {
 	URL = url + "/button/"+ props.id
@@ -57,8 +57,8 @@ function Button(props) {
 
 
 	async function updateButton(upvotes) {
-		console.log(URL);
-		console.log("my Id update is " +id);
+		//console.log(URL);
+		//console.log("my Id update is " +id);
 		//console.log(count == undefined);
 		//let upvotes = count;
 		console.log("my upvotes is  " + count);
