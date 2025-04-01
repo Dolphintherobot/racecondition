@@ -100,6 +100,18 @@ CREATE TABLE IF NOT EXISTS replyButton (
     FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS profile (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    upvotes INT DEFAULT 0,
+    account_id INT,
+    photo_id INT,
+    job_title TEXT,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    interests TEXT,
+    education TEXT,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
 
 
 
@@ -820,6 +832,7 @@ app.post('/account', async (req, res) => {
             'INSERT INTO account (username, password, isAdmin,photo_id) VALUES (?, ?, ?,?)',
             [username, password, isAdmin,photo_id]
         );
+	createProfile(result.insertId,null);
         res.status(201).json({ id: result.insertId, username, password, isAdmin});
     } catch (err) {
         console.error(err);
@@ -1132,6 +1145,193 @@ app.delete('/replyButton/:id', async (req, res) => {
         res.status(500).json({ error: 'Database error' });
     }
 });
+
+
+//######################## Profile stuff 
+async function createProfile(accountId,photo) {
+        
+	try {
+		let photoId = null;
+        	if (photo) {
+            	// Convert the photo file to a buffer (for MySQL storage)
+            	const buffer = photo.buffer;
+            	const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
+            	photoId = photoResult.insertId;
+        	}
+
+	const [result] = await sql.execute(
+            'INSERT INTO profile (acount_id,photo_id) VALUES (?,?)',
+            [accountId,photoId]
+        );
+	}
+
+	catch (err) {
+		console.log(err);
+	}
+	return result.insertId;
+}
+
+async function getProfile(id) {
+
+	let query = ""
+	
+
+	if (id) {
+		query =`
+		SELECT * FROM profile as p
+		INNER JOIN accounts ON accounts.id = p.account_id
+	 	WHERE p.account_id = ?
+		`
+
+		let [rows] = await sql.execute(query, [id]);
+
+	}
+	else {
+		query = `
+	 SELECT * FROM profile as p
+	 INNER JOIN accounts ON accounts.id = p.account_id
+	 `
+		let [rows] = await sql.execute(query, [id]);
+	}
+
+
+	return rows;
+
+}
+
+
+
+app.get('/profile/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const rows = getProfile(id);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "profile not found" });
+        }
+        res.status(200).send({profile:rows[0]});
+    } catch (error) {
+        console.error('Error profile:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+
+app.get('/profile', async (req, res) => {
+    try {
+	 const q = `
+	 SELECT * FROM profile as p
+	 INNER JOIN accounts ON accounts.id = p.account_id
+	 `
+        const rows = getProfile(null);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "profile not found" });
+        }
+        res.status(200).send({profile:rows});
+    } catch (error) {
+        console.error('Error profile:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+
+app.get('/profile/search/:query', async (req, res) => {
+    
+	const {query} = req.params;
+	try {
+	 const q = `
+	 SELECT * FROM profile as p
+	 INNER JOIN accounts ON accounts.id = p.account_id
+	 WHERE username LIKE CONCAT('%',?,'%')"
+	 `
+        const [rows] = await sql.execute(q,[query]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "profile not found" });
+        }
+        res.status(200).send({profile:rows});
+    } catch (error) {
+        console.error('Error profile:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+
+
+
+app.get('/profile/score/:author', async (req, res) => {
+    
+
+	const {author} = req.body;
+
+	try {
+        const result = computeUpvotes(author);
+        if (result === -1) {
+            return res.status(404).json({ error: "profile not found" });
+        }
+        res.status(200).send({upvotes:result});
+    } catch (error) {
+        console.error('Error profile:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+
+
+
+async function computeUpvotes(author) {
+
+	`SELECT 
+            p.id AS postId, 
+            p.topic AS postTopic,
+            p.description AS postDescription,
+            p.date AS postDate,
+            p.channelId,
+            p.author AS postAuthor,
+            postPhoto.photo AS postPhoto,  -- Select post photo
+            r.id AS replyId,
+            r.topic AS replyTopic,
+            r.description AS replyDescription,
+            r.date AS replyDate,
+            r.author AS replyAuthor,
+            replyPhoto.photo AS replyPhoto,  -- Select reply photo
+            b.id AS buttonId,
+            b.upvotes,
+            b.post_id,
+            acc.id AS accountId,  -- Select account ID
+            acc.username AS accountUsername,  -- Select account username
+            accountPhoto.photo AS accountPhoto  -- Select account photo
+        FROM post AS p
+        LEFT JOIN reply AS r ON p.id = r.post_id
+        LEFT JOIN button AS b ON p.id = b.post_id
+        LEFT JOIN photos AS postPhoto ON p.photoId = postPhoto.id  -- Join to get post photo
+        LEFT JOIN photos AS replyPhoto ON r.photo_id = replyPhoto.id  -- Join to get reply photo
+        LEFT JOIN account AS acc ON p.author = acc.username  -- Join to get account details
+        LEFT JOIN photos AS accountPhoto ON acc.photo_id = accountPhoto.id  -- Join to get account photo
+        WHERE p.channelId = ?
+        ORDER BY p.date;
+    `;
+
+
+	const query = `
+	SELECT
+	p.id as post_id,
+	r.id as reply_id
+	p.author as postAuthor,
+       	b.upvotes as postUpvotes,
+	rb.upvotes as replyUpvotes,
+	SUM(rb.upvotes + b.upvotes) as total
+	FROM post as p
+	LEFT JOIN reply as r ON r.id =p.id 
+	LEFT JOIN button as b ON b.post_id = p.id
+	LEFT JOIN replyButton as rb ON r.reply_id = r.id
+	WHERE author = ?
+	`
+
+	const [result] =  await sql.execute(query,[author]);
+
+	if (results.length === 0) return -1
+	return result.total;
+
+}
 
 
 
