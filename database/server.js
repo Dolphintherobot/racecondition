@@ -772,9 +772,12 @@ app.put("/button/:id", async (req, res) => {
 	//it may make more sense to rewrite this to increment
 	//or decrement but for now I will leave it 
     if (!id || upvotes === undefined) {
-        return res.status(400).send({ message: "Invalid data" });
+            console.log("Invalid message");
+	    return res.status(400).send({ message: "Invalid data" });
     }
 
+	    //console.log(id);
+	    //console.log(upvotes);
     const query = "UPDATE button SET upvotes = ? WHERE id = ?";
 
     const connection = await sql.getConnection();
@@ -785,10 +788,12 @@ app.put("/button/:id", async (req, res) => {
 
         if (result.affectedRows === 0) {
             await connection.rollback();
+	    console.log("Button not found");
             return res.status(404).send({ message: "Button not found" });
         }
 
         await connection.commit();
+	//console.log("SUCCESS");
         res.status(204).end();  // No content but request is successful
     } catch (err) {
         await connection.rollback();
