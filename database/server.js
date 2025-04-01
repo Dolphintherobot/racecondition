@@ -118,7 +118,6 @@ app.use(cors());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-//dummy query for the photos table for now, to satisfy contrasints 
 
 
 
@@ -1024,24 +1023,61 @@ app.get('/replyButton/:id', async (req, res) => {
     }
 });
 
-// Update Reply Button
-app.put('/replyButton/:id', async (req, res) => {
+
+
+// Get Reply Button by ID
+app.get('/reply/replyButton/:id', async (req, res) => {
     const { id } = req.params;
-    const { upvotes } = req.body;
     try {
-        const [result] = await sql.execute(
-            'UPDATE replyButton SET upvotes = ? WHERE id = ?',
-            [upvotes, id]
-        );
-        if (result.affectedRows === 0) {
+        const [rows] = await sql.execute('SELECT * FROM replyButton WHERE reply_id = ?', [id]);
+        if (rows.length === 0) {
             return res.status(404).json({ error: 'Reply button not found' });
         }
-        res.status(200).json({ message: 'Reply button updated', upvotes });
+        res.status(200).json(rows[0]);
     } catch (error) {
-        console.error('Error updating reply button:', error);
+        console.error('Error fetching reply button:', error);
         res.status(500).json({ error: 'Database error' });
     }
 });
+
+
+
+// Update Reply Button with Transaction
+app.put('/replyButton/:id', async (req, res) => {
+    const { id } = req.params;
+    const { upvotes } = req.body;
+
+    // Start a transaction
+    const connection = await con.getConnection();
+    try {
+        await connection.beginTransaction();  // Start transaction
+
+        // Update the replyButton with the specified ID
+        const [result] = await connection.execute(
+            'UPDATE replyButton SET upvotes = ? WHERE id = ?',
+            [upvotes, id]
+        );
+
+        // If no rows were affected, the replyButton does not exist
+        if (result.affectedRows === 0) {
+            await connection.rollback();  // Rollback transaction if no rows were updated
+            return res.status(404).json({ error: 'Reply button not found' });
+        }
+
+        // Commit the transaction if the update is successful
+        await connection.commit();
+
+        res.status(200).json({ message: 'Reply button updated', upvotes });
+    } catch (error) {
+        // Rollback the transaction in case of an error
+        await connection.rollback();
+        console.error('Error updating reply button:', error);
+        res.status(500).json({ error: 'Database error' });
+    } finally {
+        connection.release();  // Always release the connection
+    }
+});
+
 
 // Delete Reply Button
 app.delete('/replyButton/:id', async (req, res) => {
