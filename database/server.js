@@ -631,7 +631,7 @@ app.post("/reply", upload.single("photo"), async (req, res) => {
         );
 
 	    const [replyButton] = await sql.execute(
-		    "INSERT INTO replyButton VALUES (reply_id) (?)",[replyResult.insertId]);
+		    "INSERT INTO replyButton  (reply_id) VALUES (?)",[replyResult.insertId]);
         res.status(201).json({
             message: "Reply created successfully",
             replyId: replyResult.insertId,
