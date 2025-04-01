@@ -29,7 +29,8 @@ function Button(props) {
 	}
 
 	else {
-	URL = url + "/replyButton/"+ props.id
+		let temp = props.id || id
+	URL = url + "/replyButton/"+ temp
 
 	//	console.log("picking replyButton with own id")
 	}
@@ -60,7 +61,7 @@ function Button(props) {
 		console.log("my Id update is " +id);
 		//console.log(count == undefined);
 		//let upvotes = count;
-		//console.log(count);
+		console.log("my upvotes is  " + count);
 		fetch(URL,{
 			method:"PUT",
 			headers: {"Content-type":"application/json"},
@@ -97,8 +98,14 @@ function Button(props) {
 				{
 					//console.log(data);
 					//id = data.button.id;
-					changeId(id => id = data.button.id);
-					changeCount(c => c = data.button.upvotes);
+					changeId(id =>  {
+						id = data.button.id
+					return id
+					});
+					changeCount(c =>  {c = data.button.upvotes
+					
+						return c;
+					});
 					if (props.postId) {URL = url + "/button/"+ id}
 					else {
 						URL = url + "/replyButton/"+ id
