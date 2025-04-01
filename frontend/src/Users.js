@@ -1,5 +1,5 @@
 import {useState,useEffect} from "react"
-import {useParams} from "react-router"
+import {useParams,Link} from "react-router"
 
 
 export function Users() {
@@ -77,8 +77,17 @@ export function Users() {
 
 
 
-export function UserContainer() {
+export function UserContainer(props) {
 
+	const path = `/Channel/${props.id}/${props.title}/${props.description}`
+
+	return (
+		<div>
+		<h4> {props.title} </h4>
+		<p> {props.description} </p>
+		<Link to = {path}> <button> select </button> </Link>
+		</div>
+	)
 
 }
 
