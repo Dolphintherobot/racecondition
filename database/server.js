@@ -243,26 +243,19 @@ app.post("/channel",async  (req,res) => {
 	let username = req.body.username;
 	let responseObject = {channelId:0,postId:0,title:title,description:description}
 
+	let r = {}
 	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
 	let postQuery = "INSERT INTO post (topic,description,channelId,author) VALUES (?,?,?,?)"
 
-	sql.query(channelQuery,[title,description]).
-		then( r => {
-		let [response] = r;	
-		responseObject.channelId = response.insertId
-
-		sql.query(postQuery,[title,description,responseObject.channelId,username]).
-			then( d =>{
-				let [data] = d;
-				responseObject.postId = data.insertId;
-
-				res.send(responseObject);
-				})
-		
-
-			})
-
-
+	let [r] = awaitsql.query(channelQuery,[title,description]).
+	response.channelId = r.insertId
+	result = await createPost(topic,description,channelId,author,photo);
+	response.postId = result.postId;
+	response.postButtonId = result.postButtonId;
+	response.title = title;
+	response.description = description;
+	res.status(201).json(response);	
+	
 });
 
 
@@ -439,28 +432,11 @@ app.post("/post", upload.single("photo"), async (req, res) => {
     }
 
     try {
-        let photoId = null;
-        if (photo) {
-            // Convert the photo file to a buffer (for MySQL storage)
-            const buffer = photo.buffer;
-            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            photoId = photoResult.insertId;
-        }
 
-        // Insert post into the post table
-        const [postResult] = await sql.execute(
-            "INSERT INTO post (topic, description, channelId, author, photoId) VALUES (?, ?, ?, ?, ?)",
-            [topic, description, channelId, author, photoId]
-        );
+	    result = await createPost(topic,description,channelId,author,photo);
 
-	const [postButton] = await sql.execute(
-		"INSERT INTO replyButton (upvotes,reply_id) (0,?)",[postResult.insertId]);
-        res.status(201).json({
-            message: "Post created successfully",
-            postId: postResult.insertId,
-	    postButton:postButton.insertId,
-        });
-    } catch (error) {
+	    res.status(200).send(result);
+        } catch (error) {
         console.error("Error creating post:", error);
         res.status(500).send({ message: "Error creating post" });
     }
@@ -522,6 +498,41 @@ app.delete("/post/:id", async (req, res) => {
 
 
 
+
+
+async function createPost(topic,description,channelId,author,photo) {
+
+    if (!topic || !description || !channelId || !author) {
+        return res.status(400).send({ message: "Missing required fields" });
+    }
+
+    try {
+        let photoId = null;
+        if (photo) {
+            // Convert the photo file to a buffer (for MySQL storage)
+            const buffer = photo.buffer;
+            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
+            photoId = photoResult.insertId;
+        }
+
+        // Insert post into the post table
+        const [postResult] = await sql.execute(
+            "INSERT INTO post (topic, description, channelId, author, photoId) VALUES (?, ?, ?, ?, ?)",
+            [topic, description, channelId, author, photoId]
+        );
+
+	const [postButton] = await sql.execute(
+		"INSERT INTO replyButton (upvotes,reply_id) (0,?)",[postResult.insertId]);
+       return  {
+            message: "Post created successfully",
+            postId: postResult.insertId,
+	    postButtonId:postButton.insertId,
+        })
+
+    }
+
+
+}
 /*#################### REPLIES #######################*/
 
 
