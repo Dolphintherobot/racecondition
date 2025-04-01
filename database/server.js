@@ -1043,7 +1043,7 @@ app.get('/replyButton/:id', async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Reply button not found' });
         }
-        res.status(200).json(rows[0]);
+        res.status(200).send({button:rows[0]});
     } catch (error) {
         console.error('Error fetching reply button:', error);
         res.status(500).json({ error: 'Database error' });
@@ -1060,7 +1060,7 @@ app.get('/reply/replyButton/:id', async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Reply button not found' });
         }
-        res.status(200).json(rows[0]);
+        res.status(200).send({button:rows[0]});
     } catch (error) {
         console.error('Error fetching reply button:', error);
         res.status(500).json({ error: 'Database error' });
@@ -1072,11 +1072,21 @@ app.get('/reply/replyButton/:id', async (req, res) => {
 // Update Reply Button with Transaction
 app.put('/replyButton/:id', async (req, res) => {
     const { id } = req.params;
-    const { upvotes } = req.body;
+    const upvotes  = req.body.upvotes;
 
+	if (upvotes ==undefined ) {
+	
+		res.status(404).json({message:"Upvotes parameter undefined"});
+
+	}
+
+    //console.log(id);
+    //console.log(upvotes);
     // Start a transaction
-    const connection = await con.getConnection();
-    try {
+    const connection = await sql.getConnection();
+
+
+	try {
         await connection.beginTransaction();  // Start transaction
 
         // Update the replyButton with the specified ID
@@ -1088,11 +1098,13 @@ app.put('/replyButton/:id', async (req, res) => {
         // If no rows were affected, the replyButton does not exist
         if (result.affectedRows === 0) {
             await connection.rollback();  // Rollback transaction if no rows were updated
-            return res.status(404).json({ error: 'Reply button not found' });
+            	console.log("id not found" + id);
+		return res.status(404).json({ error: 'Reply button not found' });
         }
 
         // Commit the transaction if the update is successful
         await connection.commit();
+	//console.log("SUCCESS");
 
         res.status(200).json({ message: 'Reply button updated', upvotes });
     } catch (error) {
