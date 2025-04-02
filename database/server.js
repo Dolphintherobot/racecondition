@@ -1260,10 +1260,10 @@ app.get('/profile/search/:query', async (req, res) => {
 app.get('/profile/score/:author', async (req, res) => {
     
 
-	const {author} = req.body;
+	const {author} = req.params;
 
 	try {
-        const result = computeUpvotes(author);
+        const result = await computeUpvotes(author);
         if (result === -1) {
             return res.status(404).json({ error: "profile not found" });
         }
@@ -1279,57 +1279,59 @@ app.get('/profile/score/:author', async (req, res) => {
 
 async function computeUpvotes(author) {
 
-	`SELECT 
-            p.id AS postId, 
-            p.topic AS postTopic,
-            p.description AS postDescription,
-            p.date AS postDate,
-            p.channelId,
-            p.author AS postAuthor,
-            postPhoto.photo AS postPhoto,  -- Select post photo
-            r.id AS replyId,
-            r.topic AS replyTopic,
-            r.description AS replyDescription,
-            r.date AS replyDate,
-            r.author AS replyAuthor,
-            replyPhoto.photo AS replyPhoto,  -- Select reply photo
-            b.id AS buttonId,
-            b.upvotes,
-            b.post_id,
-            acc.id AS accountId,  -- Select account ID
-            acc.username AS accountUsername,  -- Select account username
-            accountPhoto.photo AS accountPhoto  -- Select account photo
-        FROM post AS p
-        LEFT JOIN reply AS r ON p.id = r.post_id
-        LEFT JOIN button AS b ON p.id = b.post_id
-        LEFT JOIN photos AS postPhoto ON p.photoId = postPhoto.id  -- Join to get post photo
-        LEFT JOIN photos AS replyPhoto ON r.photo_id = replyPhoto.id  -- Join to get reply photo
-        LEFT JOIN account AS acc ON p.author = acc.username  -- Join to get account details
-        LEFT JOIN photos AS accountPhoto ON acc.photo_id = accountPhoto.id  -- Join to get account photo
-        WHERE p.channelId = ?
-        ORDER BY p.date;
-    `;
+const q1 = 
+`
+    SELECT
+      p.id as post_id,
+      p.author as postAuthor,
+      b.upvotes as postUpvotes,
+      SUM(b.upvotes) as total
+      FROM post as p
+      JOIN button as b ON b.post_id = p.id
+      WHERE p.author = ?
+      GROUP BY p.id,p.author,b.upvotes
+`
 
 
-	const query = `
-	SELECT
-	p.id as post_id,
-	r.id as reply_id
-	p.author as postAuthor,
-       	b.upvotes as postUpvotes,
-	rb.upvotes as replyUpvotes,
-	SUM(rb.upvotes + b.upvotes) as total
-	FROM post as p
-	LEFT JOIN reply as r ON r.id =p.id 
-	LEFT JOIN button as b ON b.post_id = p.id
-	LEFT JOIN replyButton as rb ON r.reply_id = r.id
-	WHERE author = ?
-	`
+const q2 = 
+`
+    SELECT
+      r.id as reply_id,
+      r.author as replyAuthor,
+      rb.upvotes as replyUpvotes,
+      SUM(rb.upvotes) as total
+      FROM reply as r
+      JOIN replyButton as rb ON rb.reply_id = r.id
+      WHERE r.author = ?
+      GROUP BY r.id,r.author,rb.upvotes
+`
 
-	const [result] =  await sql.execute(query,[author]);
 
-	if (results.length === 0) return -1
-	return result.total;
+
+	//const [result] =  await sql.execute(query,[author]);
+
+	const [postResult] = await sql.execute(q1,[author])
+	const [replyResult] = await sql.execute(q2,[author])
+
+	//console.log(postResult[0].total)
+	//console.log(replyResult[0].total)
+
+	if (postResult.length === 0 && replyResult.length === 0) {
+		return -1;
+	}
+
+	if (postResult.length === 0) {
+	
+		return replyResult[0].total
+	}
+
+	if (replyResult.length === 0) {	
+		return postResult[0].total
+	}
+
+
+
+	return parseInt(postResult[0].total) + parseInt(replyResult[0].total)
 
 }
 
