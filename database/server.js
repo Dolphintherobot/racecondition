@@ -957,7 +957,7 @@ app.get("/photo/:id", (req, res) => {
     const { id } = req.params;
 
     const query = "SELECT photo FROM photos WHERE id = ?";
-    db.query(query, [id], (err, result) => {
+    sql.query(query, [id], (err, result) => {
         if (err) {
             console.error("Error retrieving photo:", err);
             return res.status(500).json({ error: "Failed to retrieve photo" });
@@ -1144,9 +1144,11 @@ app.delete('/replyButton/:id', async (req, res) => {
 
 //######################## Profile stuff 
 async function createProfile(accountId,photo) {
-       
+      
 	let id = 0
 	try {
+		
+	console.log(accountId)
 		let photoId = null;
         	if (photo) {
             	// Convert the photo file to a buffer (for MySQL storage)
@@ -1159,6 +1161,7 @@ async function createProfile(accountId,photo) {
             'INSERT INTO profile (account_id,photo_id) VALUES (?,?)',
             [accountId,photoId]
         );
+	
 		return result.insertId;
 	}
 
@@ -1175,23 +1178,24 @@ async function getProfile(id) {
 	if (id) {
 		query =`
   SELECT * FROM profile as p
-  INNER JOIN account ON accounts.id = p.account_id
-  WHERE p.account_id = ?
+  INNER JOIN account ON account.id = p.account_id
+  WHERE p.id = ?
   `
 
 		let [rows] = await sql.execute(query, [id]);
 
+		return rows;
 	}
 	else {
 		query = `
    SELECT * FROM profile as p
-   INNER JOIN accounts ON accounts.id = p.account_id
+   LEFT JOIN account ON account.id = p.account_id
    `
 		let [rows] = await sql.execute(query, [id]);
+		return rows;
 	}
 
 
-	return rows;
 
 }
 
@@ -1200,7 +1204,7 @@ async function getProfile(id) {
 app.get('/profile/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const rows = getProfile(id);
+        const rows = await getProfile(id);
         if (rows.length === 0) {
             return res.status(404).json({ error: "profile not found" });
         }
@@ -1214,12 +1218,8 @@ app.get('/profile/:id', async (req, res) => {
 
 app.get('/profile', async (req, res) => {
     try {
-	 const q = `
-	 SELECT * FROM profile as p
-	 INNER JOIN accounts ON accounts.id = p.account_id
-	 `
-        const rows = getProfile(null);
-        
+	 
+        const rows = await getProfile(null);
 	if (rows.length === 0) {
             return res.status(404).json({ error: "profile not found" });
         }
