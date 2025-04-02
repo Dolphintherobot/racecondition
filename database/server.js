@@ -447,7 +447,7 @@ app.post("/post", upload.single("photo"), async (req, res) => {
 
     try {
 
-	    result = await createPost(topic,description,channelId,author,photo);
+	    let result = await createPost(topic,description,channelId,author,photo);
 
 	    res.status(200).send(result);
         } catch (error) {
@@ -1149,7 +1149,8 @@ app.delete('/replyButton/:id', async (req, res) => {
 
 //######################## Profile stuff 
 async function createProfile(accountId,photo) {
-        
+       
+	let id = 0
 	try {
 		let photoId = null;
         	if (photo) {
@@ -1160,15 +1161,15 @@ async function createProfile(accountId,photo) {
         	}
 
 	const [result] = await sql.execute(
-            'INSERT INTO profile (acount_id,photo_id) VALUES (?,?)',
+            'INSERT INTO profile (account_id,photo_id) VALUES (?,?)',
             [accountId,photoId]
         );
+		return result.insertId;
 	}
 
 	catch (err) {
 		console.log(err);
 	}
-	return result.insertId;
 }
 
 async function getProfile(id) {
@@ -1313,7 +1314,7 @@ const q2 =
 	const [postResult] = await sql.execute(q1,[author])
 	const [replyResult] = await sql.execute(q2,[author])
 
-	console.log(postResult)
+	//console.log(postResult)
 	//console.log(replyResult[0].total)
 
 	let total = 0
