@@ -2,16 +2,17 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
   
 // Component to list profiles based on a search query
-export function Users() {
+export function Users(props) {
   const display = window.userStatus.isLoggedIn;
   const [profiles, setProfiles] = useState([]);
-  const { query } = useParams(); // e.g. /profiles/search/:query
+ //const { query } = useParams(); // e.g. /profiles/search/:query
+  const query = props.query;
   let url = process.env.URL || "http://localhost:3002";
   const URL = url + "/profile/search"; // use profile search endpoint
 
   useEffect(() => {
     getProfiles();
-  }, [query]); // re-run when query changes
+  },[]);
 
   async function getProfiles() {
     try {
@@ -37,8 +38,8 @@ export function Users() {
       <ul>
         {profiles.map((profile) => (
           <li key={profile.id}>
-            <Link to={`/profile/${profile.id}`}>
-              {profile.job_title || "Untitled Profile"}
+            <Link to={`/user/${profile.id}`}>
+              {profile.username || "Untitled Profile"}
             </Link>
           </li>
         ))}
