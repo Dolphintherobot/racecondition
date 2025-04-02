@@ -1,8 +1,7 @@
 import {useState,useEffect} from "react"
 import ResponseAuthor from "./ResponseAuthor"
 import DeleteButton from "./DeleteButton"
-import { Photo } from "./Post"
-import {PhotoForm} from "./Channel"
+import { Photo,PhotoForm } from "./Photo"
 import Button from "./Button.js"
 import {Rank} from "./Rank"
 

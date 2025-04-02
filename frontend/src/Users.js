@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-  
-// Component to list profiles based on a search query
-export function Users(props) {
+
+export function Users() {
   const display = window.userStatus.isLoggedIn;
   const [profiles, setProfiles] = useState([]);
- //const { query } = useParams(); // e.g. /profiles/search/:query
-  const query = props.query;
+  const { query } = useParams();
   let url = process.env.URL || "http://localhost:3002";
-  const URL = url + "/profile/search"; // use profile search endpoint
+  const URL = url + "/profile/search";
 
   useEffect(() => {
     getProfiles();
-  },[]);
+  }, [query]);
 
   async function getProfiles() {
     try {
@@ -25,7 +23,6 @@ export function Users(props) {
         throw new Error("Response status " + response.status);
       }
       const data = await response.json();
-      // Expecting data in the form: { profile: [...] }
       setProfiles(data.profile);
     } catch (err) {
       console.log(err);
@@ -39,7 +36,7 @@ export function Users(props) {
         {profiles.map((profile) => (
           <li key={profile.id}>
             <Link to={`/user/${profile.id}`}>
-              {profile.username || "Untitled Profile"}
+              {profile.job_title || "Untitled Profile"}
             </Link>
           </li>
         ))}
@@ -50,10 +47,17 @@ export function Users(props) {
   );
 }
 
-// Component to view a single profile's details
+// Profile component with an update form
 export function Profile() {
-  const { id } = useParams(); // expects route: /profile/:id
+  const { id } = useParams();
   const [profile, setProfile] = useState(null);
+  const [formData, setFormData] = useState({
+    job_title: "",
+    interests: "",
+    education: "",
+  });
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const loggedInUser = window.userStatus.username;
   let url = process.env.URL || "http://localhost:3002";
 
   useEffect(() => {
@@ -67,8 +71,12 @@ export function Profile() {
           throw new Error("Response status " + response.status);
         }
         const data = await response.json();
-        // Expecting data in the form: { profile: { ... } }
         setProfile(data.profile);
+        setFormData({
+          job_title: data.profile.job_title || "",
+          interests: data.profile.interests || "",
+          education: data.profile.education || "",
+        });
       } catch (err) {
         console.log(err);
       }
@@ -76,9 +84,51 @@ export function Profile() {
     fetchProfile();
   }, [id, url]);
 
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handlePhotoChange = (e) => {
+    setSelectedPhoto(e.target.files[0]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formDataToSend = new FormData();
+    formDataToSend.append("job_title", formData.job_title);
+    formDataToSend.append("interests", formData.interests);
+    formDataToSend.append("education", formData.education);
+    if (selectedPhoto) {
+      formDataToSend.append("photo", selectedPhoto);
+    }
+
+    try {
+      const response = await fetch(`${url}/profile/${id}`, {
+        method: "PUT",
+        body: formDataToSend,
+      });
+
+      if (response.ok) {
+        alert("Profile updated successfully!");
+       // window.location.reload(); // Refresh the profile
+      } else {
+        throw new Error("Profile update failed");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+    }
+  };
+
   if (!profile) {
     return <p>Loading profile...</p>;
   }
+
+  profile.username = profile.username.replace(/[\n\r\t]/gm, "").trim()
+  const isOwner = profile.username === loggedInUser;
+
+
+
+
 
   return (
     <div>
@@ -101,7 +151,50 @@ export function Profile() {
       ) : (
         <p>No profile photo</p>
       )}
-      {/* You can add an update form here that sends a PUT request to /profile/:id */}
+
+      {isOwner && (
+        <div>
+          <h3>Edit Profile</h3>
+          <form onSubmit={handleSubmit} encType="multipart/form-data">
+            <label>
+              Job Title:
+              <input
+                type="text"
+                name="job_title"
+                value={formData.job_title}
+                onChange={handleChange}
+              />
+            </label>
+            <br />
+            <label>
+              Interests:
+              <input
+                type="text"
+                name="interests"
+                value={formData.interests}
+                onChange={handleChange}
+              />
+            </label>
+            <br />
+            <label>
+              Education:
+              <input
+                type="text"
+                name="education"
+                value={formData.education}
+                onChange={handleChange}
+              />
+            </label>
+            <br />
+            <label>
+              Profile Photo:
+              <input type="file" accept="image/*" onChange={handlePhotoChange} />
+            </label>
+            <br />
+            <button type="submit">Update Profile</button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

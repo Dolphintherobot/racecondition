@@ -23,7 +23,7 @@ export function Rank(props) {
 		fetch(URL).
 			then(response => {
 				if (!response.ok) {	
-				throw new Error("Response status" + response.status + text.message + text.error)	
+				throw new Error("Response status" + response.status)	
 				}
 				return response.json();
 				
@@ -31,16 +31,16 @@ export function Rank(props) {
 			then(data => {
 			
 				let upvotes = data.upvotes
-				changeCount(c = > c = upvotes)
+				changeCount(c => c = upvotes)
 				let temp = ""
 				if (upvotes < 0) {
 					temp = "needs to change major and/or disciplines"
 				}
 				else if (upvotes < 5) {
-					temp = "noob"
+					temp = "beginner"
 				}
 				else if (upvotes < 10) {
-					temp = "decent"
+					temp = "intermediate"
 				}
 				else {
 					temp = "programming God"
@@ -53,6 +53,15 @@ export function Rank(props) {
 
 
 
+	return (
+
+		<>
+		<p> Rank: {rank} </p>
+		</>
+
+
+
+	)
 
 
 	}
@@ -61,4 +70,4 @@ export function Rank(props) {
 
 
 
-}
+

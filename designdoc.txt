@@ -63,7 +63,6 @@ in the join operations I do)
 table channel:
 primary key id,title,description, date
 
-
 table post:
 primary key id, topic,description,secondary key photo,secondary key channel,date  
 
@@ -81,18 +80,10 @@ all replies that have my primary key
 table button:
 primary key id, integer upvotes, secondary key post id
 
-a nosql database might make much more sense
-for accounts, since the relational model
-makes no sense here and accounts may be able
-to read and write more
 
-document account:
-username:
-password:
-admin_privaledges:
-avatar:
-posts that it has upvoted on:
-posts it has created:
+table account:
+primary key id, char NOT NULL username, char NOT NULL password, integer isAdmin,
+secondary key photoId/avatar 
 
 
 
@@ -181,7 +172,6 @@ get,put,post,delete a post with an id
 URL/replies/id
 
 
-
 React components
 
 
@@ -212,7 +202,59 @@ replies:
 - very similar to a5, just need a way to delete somewhere  
 
 
+Adding user accounts plan
+
+CRUD -> CR = create and read 
+
+
+things left to do 
+1. get user able to post screenshots, should be able to display them as well
+2. implement upvote buttons 
+3.extra useful features 
+4.add css to make it look better 
+
+
+Nice to haves:
+1.Navigates once logged in
+2. conditional renders for login and create account once logged in 
 
 
 
- 
+
+
+channelData response format.
+
+
+{
+  "result": [
+    {
+      "postId": 1,
+      "postTopic": "Post Topic",
+      "postDescription": "Post Description",
+      "postDate": "2025-03-28T00:00:00.000Z",
+      "channelId": 1,
+      "postAuthor": "user1",
+      "postPhoto": "base64encodedimage",  // Post image as base64 (if any)
+      "replyId": 2,
+      "replyTopic": "Reply Topic",
+      "replyDescription": "Reply Description",
+      "replyDate": "2025-03-28T01:00:00.000Z",
+      "replyAuthor": "user2",
+      "replyPhoto": "base64encodedimage",  // Reply image as base64 (if any)
+      "buttonId": 1,
+      "upvotes": 10,
+      "post_id": 1,
+      "accountId": 1,
+      "accountUsername": "user1",
+      "accountPhoto": "base64encodedimage"  // Account photo as base64 (if any)
+    }
+  ]
+}
+
+
+special characters like ?, cannot be used for making channel names, since
+when react router comes along it will interpret the path as a special http
+get request symbol
+
+multer and buffer are required for handling files 
+

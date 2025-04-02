@@ -2,6 +2,7 @@ import {useState,useEffect,useContext} from "react"
 import Post from "./Post.js"
 import DeleteButton from "./DeleteButton.js"
 import {useParams} from "react-router"
+import {PhotoForm} from "./Photo"
 export default Channel;
 
 function Channel(props) {
@@ -127,6 +128,7 @@ function Channel(props) {
 					description:element.replyDescription,
 					author:element.replyAuthor,
 					photo:element.replyPhoto,
+					button: {id:element.replyId},
 				});
 
 			}
@@ -143,8 +145,9 @@ function Channel(props) {
 						description:element.replyDescription,
 						author:element.replyAuthor,
 						photo:element.replyPhoto,
+						button: {id:element.replyId}
 					}],
-					button: {id:element.buttonId,upvotes:element.upvotes}
+					button: {id:element.buttonId,upvotes:element.upvotes,postId:element.postId}
 				}
 				newPosts.push(post);
 			}
@@ -216,24 +219,6 @@ function Channel(props) {
 
 
 
-
-
-
-export function PhotoForm(props) {
-
-	//pass in useState stuff into props
-	const {photo,changePhoto} = props;
-
-	function fileChangedHandler(event) {
-  		changePhoto(p => p = event.target.files[0])
-	}
-
-return (
-	<div>
-	<input type="file" onChange={fileChangedHandler}/>	
-	</div>
-	)
-}
 
 
 

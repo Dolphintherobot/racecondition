@@ -1,7 +1,7 @@
 
 function ResponseAuthor(props) {
 
-	return ( {props.author}?
+	return ( props.author?
 		<p> written by {props.author}</p>
 		:
 		<></>

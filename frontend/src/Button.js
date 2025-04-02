@@ -61,7 +61,7 @@ function Button(props) {
 		//console.log("my Id update is " +id);
 		//console.log(count == undefined);
 		//let upvotes = count;
-		console.log("my upvotes is  " + count);
+		//console.log("my upvotes is  " + count);
 		fetch(URL,{
 			method:"PUT",
 			headers: {"Content-type":"application/json"},
@@ -111,7 +111,7 @@ function Button(props) {
 						URL = url + "/replyButton/"+ id
 					
 						//console.log("Changing id to " +id);
-						console.log(URL)
+						//console.log(URL)
 					}
 
 			}).catch(err => console.log(err));

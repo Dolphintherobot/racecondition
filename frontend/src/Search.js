@@ -2,9 +2,11 @@ import ChannelList from "./ChannelList"
 import {useState,useEffect} from "react"
 import {useParams} from "react-router"
 import ChannelContainer from "./ChannelContainer.js"
+import {Users} from "./Users"
 function Search(props) 
 {
 
+	const display = window.userStatus.isLoggedIn
 	const [channels,changeChannels] = useState([])
 	const {query} = useParams();
 	let url = process.env.URL || "http://localhost:3002"
@@ -16,7 +18,6 @@ function Search(props)
 	getChannels();
 	},[]);
 
-	//grabs everything, except nested replies from the backend
 	async function getChannels() {
 
 		fetch(URL,{
@@ -39,7 +40,7 @@ function Search(props)
 						return c;
 					}
 					)
-					console.log(d.channels);
+					//console.log(d.channels);
 				}).catch(err => console.log(err));
 
 	}
@@ -47,7 +48,7 @@ function Search(props)
 
 
 
-	return (
+	return (display?
 
 		<div>
 
@@ -65,8 +66,11 @@ function Search(props)
 			}
 		)}
 		</ul>
+		<Users query = {query}/>
 
 		</div>
+		:
+		<p> log in before being able to view the results of a search query </p>
 
 
 	)
