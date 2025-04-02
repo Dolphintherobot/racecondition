@@ -1333,6 +1333,71 @@ const q2 =
 
 }
 
+const multer = require("multer");
+
+const storage = multer.memoryStorage(); // Store image in memory before saving to DB
+const upload = multer({ storage: storage });
+
+app.put("/profile/:id", upload.single("photo"), async (req, res) => {
+    let id = req.params.id;
+
+    if (!id) {
+        return res.status(400).send({ message: "No ID provided" });
+    }
+
+    let { job_title, interests, education } = req.body;
+    let photo = req.file ? req.file.buffer : null;
+
+    const getCurrentPhotoQuery = `SELECT photo_id FROM profile WHERE id = ?`;
+    const insertPhotoQuery = `INSERT INTO photos (photo) VALUES (?)`;
+    const updateProfileQuery = `UPDATE profile SET job_title = ?, interests = ?, education = ? ${photo ? ", photo_id = ?" : ""} WHERE id = ?`;
+
+    try {
+        const connection = await sql.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            let photo_id = null;
+            
+            if (photo) {
+                // Insert new photo and get its ID
+                const [photoResult] = await connection.query(insertPhotoQuery, [photo]);
+                photo_id = photoResult.insertId;
+            } else {
+                // No new photo uploaded → Get current photo_id
+                const [rows] = await connection.query(getCurrentPhotoQuery, [id]);
+                if (rows.length > 0) {
+                    photo_id = rows[0].photo_id; // Preserve existing photo_id
+                }
+            }
+
+            // Build the update query dynamically
+            const queryParams = [job_title, interests, education];
+            if (photo) queryParams.push(photo_id);
+            queryParams.push(id);
+
+            let [result] = await connection.query(updateProfileQuery, queryParams);
+
+            if (result.affectedRows === 0) {
+                throw new Error("Updating profile failed - no matching record found");
+            }
+
+            await connection.commit();
+            res.status(204).end(); // 204 - No Content (update successful, nothing to return)
+        } catch (err) {
+            await connection.rollback();
+            console.log(err);
+            res.status(409).json({ message: "Conflict while updating profile: " + err.message });
+        } finally {
+            connection.release();
+        }
+    } catch (err) {
+        console.error("Database Connection Error", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
 
 
 app.use(express.static("files"));
