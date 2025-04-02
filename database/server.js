@@ -1219,7 +1219,8 @@ app.get('/profile', async (req, res) => {
 	 INNER JOIN accounts ON accounts.id = p.account_id
 	 `
         const rows = getProfile(null);
-        if (rows.length === 0) {
+        
+	if (rows.length === 0) {
             return res.status(404).json({ error: "profile not found" });
         }
         res.status(200).send({profile:rows});
@@ -1235,12 +1236,15 @@ app.post('/profile/search', async (req, res) => {
 	const {query} = req.body;
 	try {
 	 const q = `
-	 SELECT * FROM profile as p
-	 INNER JOIN accounts ON accounts.id = p.account_id
-	 WHERE username LIKE CONCAT('%',?,'%')"
-	 `
-        const [rows] = await sql.execute(q,[query]);
-        if (rows.length === 0) {
+         SELECT * FROM account as a
+         INNER JOIN profile as p ON a.id = p.account_id
+         WHERE a.username LIKE CONCAT('%',?,'%')
+         `
+        
+
+	const [rows] = await sql.execute(q,[query]);
+        console.log(rows);
+	if (rows.length === 0) {
             return res.status(404).json({ error: "profile not found" });
         }
         res.status(200).send({profile:rows});
@@ -1333,10 +1337,6 @@ const q2 =
 
 }
 
-const multer = require("multer");
-
-const storage = multer.memoryStorage(); // Store image in memory before saving to DB
-const upload = multer({ storage: storage });
 
 app.put("/profile/:id", upload.single("photo"), async (req, res) => {
     let id = req.params.id;
