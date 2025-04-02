@@ -3,6 +3,8 @@ import ResponseAuthor from "./ResponseAuthor"
 import DeleteButton from "./DeleteButton"
 import { Photo } from "./Post"
 import {PhotoForm} from "./Channel"
+import Button from "./Button.js"
+import {Rank} from "./Rank"
 
 function Response(props) {
 
@@ -38,7 +40,7 @@ function Response(props) {
 		formdata.append("reply_id",id);
 		formdata.append("description",data);
 		formdata.append("topic",props.topic);
-		formdata.append("author",author);
+		formdata.append("author",username);
 		formdata.append("postId",-1);
 		if (photo) {
 			formdata.append("photo",photo);
@@ -101,6 +103,7 @@ function Response(props) {
 	return ( id != null ?
 		<>
 		<p> {props.description}  </p>
+		<Rank author = {author}/>
 		<Photo photo = {props.photo}/>
 		<ul> 
 		{responses.map( response => 
@@ -114,6 +117,8 @@ function Response(props) {
 			/>)}
 		</ul>
 		<p>enter in a  reply to the response</p>
+		<Button replyId = {id} upvotes = {0} />
+		
 		<input type = "text" onChange = {handleDataUpdate}/>
 		<button onClick = {submitResponse}> submit </button>	
 		<ResponseAuthor author = {props.author}/>
