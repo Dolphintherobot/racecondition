@@ -1313,25 +1313,27 @@ const q2 =
 	const [postResult] = await sql.execute(q1,[author])
 	const [replyResult] = await sql.execute(q2,[author])
 
-	//console.log(postResult[0].total)
+	console.log(postResult)
 	//console.log(replyResult[0].total)
+
+	let total = 0
+	postResult.forEach( e => {
+	
+		total = total + parseInt(e.total)
+	})
+
+	replyResut.forEach( e => {
+		total = total + parseInt(e.total)
+	})
+
 
 	if (postResult.length === 0 && replyResult.length === 0) {
 		return -1;
 	}
 
-	if (postResult.length === 0) {
-	
-		return replyResult[0].total
-	}
 
-	if (replyResult.length === 0) {	
-		return postResult[0].total
-	}
-
-
-
-	return parseInt(postResult[0].total) + parseInt(replyResult[0].total)
+	return total
+	//return parseInt(postResult[0].total) + parseInt(replyResult[0].total)
 
 }
 
