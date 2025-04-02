@@ -1322,7 +1322,7 @@ const q2 =
 		total = total + parseInt(e.total)
 	})
 
-	replyResut.forEach( e => {
+	replyResult.forEach( e => {
 		total = total + parseInt(e.total)
 	})
 
