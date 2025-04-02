@@ -1174,19 +1174,19 @@ async function getProfile(id) {
 
 	if (id) {
 		query =`
-		SELECT * FROM profile as p
-		INNER JOIN accounts ON accounts.id = p.account_id
-	 	WHERE p.account_id = ?
-		`
+  SELECT * FROM profile as p
+  INNER JOIN account ON accounts.id = p.account_id
+  WHERE p.account_id = ?
+  `
 
 		let [rows] = await sql.execute(query, [id]);
 
 	}
 	else {
 		query = `
-	 SELECT * FROM profile as p
-	 INNER JOIN accounts ON accounts.id = p.account_id
-	 `
+   SELECT * FROM profile as p
+   INNER JOIN accounts ON accounts.id = p.account_id
+   `
 		let [rows] = await sql.execute(query, [id]);
 	}
 
@@ -1243,7 +1243,7 @@ app.post('/profile/search', async (req, res) => {
         
 
 	const [rows] = await sql.execute(q,[query]);
-        console.log(rows);
+        //console.log(rows);
 	if (rows.length === 0) {
             return res.status(404).json({ error: "profile not found" });
         }
