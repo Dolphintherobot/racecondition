@@ -4,6 +4,8 @@ import Response from "./Response.js"
 import DeleteButton from "./DeleteButton.js"
 import {Buffer} from "buffer";
 import {PhotoForm} from "./Channel.js"
+import Button from "./Button.js"
+import {Rank} from "./Rank"
 
 /*Properities of a Post should be 
  {
@@ -57,6 +59,7 @@ function Post(props) {
 		formdata.append("description",data);
 		formdata.append("topic",props.topic);
 		formdata.append("author",username);
+		formdata.append("reply_id",-1);
 		
 		if (photo) {
 			formdata.append("photo",photo);
@@ -78,7 +81,13 @@ function Post(props) {
 
 			//console.log(data);
 			changeResponses( prev => 
-			prev = [...prev,{topic:props.topic,description:data,id:d.replyId,author:username,}] //adds the new document to the array 
+			prev = [...prev,
+				{topic:props.topic,
+					description:data,
+					id:d.replyId,
+					photo:photo,
+					author:username,
+				}] //adds the new document to the array 
 		)} 
 		).catch(err => console.log(err));
 
@@ -117,6 +126,7 @@ function Post(props) {
 		<p> {props.description} </p>
 		<Photo photo = {props.photo}/>
 		<p> posted by {author} </p>
+		<Rank author = {author}/>
 		<ul> 
 		{responses.map( response =>
 			<Response 
@@ -131,6 +141,11 @@ function Post(props) {
 
 		<p>enter in a response to the post</p>
 		<input type = "text" onChange = {handleDataUpdate}/>
+		<Button 
+		id = {props.button.id}
+		upvotes = {props.button.upvotes}
+		postId = {id}
+		/>
 		<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
 		<button onClick = {submitResponse}> submit </button>
 		<DeleteButton id = {id} type = {"post"} />
@@ -148,7 +163,7 @@ function Post(props) {
 
 
 
-function Photo(props) {
+export function Photo(props) {
     const [photoBase64, setPhotoBase64] = useState(null);
 
     // This function converts File (from FormData) to Base64 string
