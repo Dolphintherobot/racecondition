@@ -1230,9 +1230,9 @@ app.get('/profile', async (req, res) => {
 });
 
 
-app.get('/profile/search/:query', async (req, res) => {
+app.post('/profile/search', async (req, res) => {
     
-	const {query} = req.params;
+	const {query} = req.body;
 	try {
 	 const q = `
 	 SELECT * FROM profile as p
