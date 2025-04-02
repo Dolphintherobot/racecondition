@@ -220,17 +220,12 @@ app.get("/channelData/:id", async (req, res) => {
             replyPhoto.photo AS replyPhoto,  -- Select reply photo
             b.id AS buttonId,
             b.upvotes,
-            b.post_id,
-            acc.id AS accountId,  -- Select account ID
-            acc.username AS accountUsername,  -- Select account username
-            accountPhoto.photo AS accountPhoto  -- Select account photo
+            b.post_id
         FROM post AS p
         LEFT JOIN reply AS r ON p.id = r.post_id
         LEFT JOIN button AS b ON p.id = b.post_id
         LEFT JOIN photos AS postPhoto ON p.photoId = postPhoto.id  -- Join to get post photo
         LEFT JOIN photos AS replyPhoto ON r.photo_id = replyPhoto.id  -- Join to get reply photo
-        LEFT JOIN account AS acc ON p.author = acc.username  -- Join to get account details
-        LEFT JOIN photos AS accountPhoto ON acc.photo_id = accountPhoto.id  -- Join to get account photo
         WHERE p.channelId = ?
         ORDER BY p.date;
     `;
