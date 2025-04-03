@@ -10,6 +10,7 @@ export function NavBar() {
           <Link to="/CreateAccount" className="btn btn-primary">Create Account</Link>
           <Link to="/CreateChannel" className="btn btn-primary">New Question</Link>
           <Link to="/Accounts" className="btn btn-primary">All Users</Link>
+          <Link to="/" className="btn btn-primary">Home</Link>
           <SearchBar />
         </div>
       </div>

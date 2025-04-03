@@ -48,14 +48,13 @@ function App() {
 			<Routes>
 			<Route path = "/" element  = {<Layout/>}>
 		
-			<Route path = "/test" element = {<Channel id = {x} title = "Dabe" isLoggedIn = {false}/>}/>
 			<Route path = "/Login" element = {<Login/>}/>
 			<Route path = "/CreateAccount" element = {<CreateAccount/>}/>
 			<Route exact path = "/Search/:query" element = {<Search/>}/>
 			<Route exact path = "/Channel/:id/:title/:description" element = {<Channel/>}/>
 			
 			<Route path = "/user/:id" element = {<Profile/>}/>
-			<Route path = "/Landing" element = {<Landing/>}/>
+			<Route path = "/" element = {<Landing/>}/>
 			<Route path = "/CreateChannel" element = {<CreateChannel/>}/>
 			<Route path = "/Accounts" element = {<Account/>}/>
 		</Route>
