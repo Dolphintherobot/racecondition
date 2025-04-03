@@ -18,7 +18,9 @@ export function Photo(props) {
      async function wrapper() {
 			
         if (props.photo_id && !props.photo) {
-	
+
+
+		//DOES NOT WORK 
 	    console.log("HELLO");
 	    let photo =  await getPhoto(props.photo_id);
 	    //console.log(photo);

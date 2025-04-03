@@ -1,82 +1,59 @@
-import {useState} from "react"
+import { useState } from "react"
+import './App.css';
 
 export function Login() {
+  const [username, changeUserName] = useState("");
+  const [password, changePassword] = useState("");
+  const URL = `${process.env.URL || "http://localhost:3002"}/account/verify`;
 
-	//use window.alert(message) to alert the user
-	//the username button
-	const [username,changeUserName] = useState("");
-
-	//the password button
-	const [password,changePassword] = useState("");
-
-
-	
-
-
-	let url = process.env.URL || "http://localhost:3002"
-	const URL = url + "/account/verify"
-
-	
-
-	function handleUserNameUpdate(event) {
-		changeUserName(u => u = event.target.value);
-	}
-
-	function handlePasswordUpdate(event) {
-		changePassword(p => p = event.target.value);
-	}
-
-
-	function verifyAccount() {
-
-		let uname = username;
-		let pass = password;
-		fetch(URL, {
-			method: "POST",
-			headers: {"content-type":"application/json"},
-			body:JSON.stringify( {
-				username:uname,
-				password:pass, 
-			},
-			)}).then(response => {
-			if (!response.ok) {	
-				throw new Error(`Account not verified: ${response.status}`)
-			}
-			else return response.json();
-
-		}).then(d => {
-			window.userStatus = {
-				isLoggedIn:true,
-				username:uname,
-				isAdmin:d.isAdmin == 1,
-			}
-
-			changeUserName(u => u = "");
-			changePassword(p => p = "");
-			window.alert("succesful login");
-
-		}).catch( err => {
-			console.log(err)
-			window.alert(err);
-		});
-
-	}
-
-
-
-	return (
-		<>
-		<h2> login </h2>
-		<h4> Enter in a username and password </h4>
-		<input type = "text" onChange = {handleUserNameUpdate} value = {username}
-		placeholder = "enter in a username"/>
-		<input type = "text" onChange = {handlePasswordUpdate} value = {password}
-		placeholder = "enter in some password"/>
-		<button onClick = {verifyAccount}> Login </button>
-		</>
-
-	)
-
+  return (
+    <div className="container">
+      <div className="card">
+        <h2>Login</h2>
+        <div className="form-group">
+          <input
+            type="text"
+            className="form-control"
+            onChange={(e) => changeUserName(e.target.value)}
+            value={username}
+            placeholder="Username"
+          />
+        </div>
+        <div className="form-group">
+          <input
+            type="password"
+            className="form-control"
+            onChange={(e) => changePassword(e.target.value)}
+            value={password}
+            placeholder="Password"
+          />
+        </div>
+        <button 
+          className="btn btn-primary"
+          onClick={() => {
+            fetch(URL, {
+              method: "POST",
+              headers: {"content-type":"application/json"},
+              body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+              if (response.ok) {
+                window.userStatus = {
+                  isLoggedIn: true,
+                  username: username,
+                  isAdmin: response.json().then(d => d.isAdmin == 1)
+                };
+                window.alert("Successful login");
+              }
+            })
+            .catch(err => window.alert(err));
+          }}
+        >
+          Login
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default Login;

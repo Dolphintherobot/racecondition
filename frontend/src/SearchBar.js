@@ -1,31 +1,27 @@
-import {useState} from "react"
-import Search from "./Search.js"
-import {Link} from "react-router"
+import { useState } from "react"
+import { Link } from "react-router"
+import './App.css';
 
 function SearchBar() {
+  const [text, changeText] = useState("");
+  const [path, changePath] = useState("");
 
-	const [text,changeText] = useState(" ");
-
-	const [path,changePath] = useState(" ");
-
-	function handleTextUpdate(event) {
-		changeText(t => t = event.target.value);
-		changePath(p => p = `/Search/${event.target.value}`)
-	}
-
-
-	return (
-		<>
-		<p>search for something</p>
-		<input type = "text" onChange = {handleTextUpdate}/>
-		<Link to = {path} ><button> Search </button> </Link>
-		</>
-	)
-
-
-
-
+  return (
+    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      <input
+        type="text"
+        className="form-control"
+        onChange={(e) => {
+          changeText(e.target.value);
+          changePath(`/Search/${e.target.value}`);
+        }}
+        placeholder="Search..."
+      />
+      <Link to={path} className="btn btn-primary">
+        Search
+      </Link>
+    </div>
+  );
 }
-
 
 export default SearchBar;

@@ -1,16 +1,14 @@
-import useState from "react"
-import NavBar from  "./NavBar"
-import {Outlet} from "react-router"
+import './App.css';
 
 function Landing() {
-
-	return (
-		<>
-		<p> welcome to my page </p>
-		</>
-	);
+  return (
+    <div className="container">
+      <div className="card text-center">
+        <h1>Welcome to Our Community</h1>
+        <p className="lead">Start by browsing channels or searching for content</p>
+      </div>
+    </div>
+  );
 }
-
-
 
 export default Landing;

@@ -953,16 +953,12 @@ app.post("/photo", upload.single("photo"), (req, res) => {
 });
 
 // Read a photo by ID (GET /photo/:id)
-app.get("/photo/:id", (req, res) => {
+app.get("/photo/:id", async (req, res) => {
     const { id } = req.params;
 
     const query = "SELECT photo FROM photos WHERE id = ?";
-    sql.query(query, [id], (err, result) => {
-        if (err) {
-            console.error("Error retrieving photo:", err);
-            return res.status(500).json({ error: "Failed to retrieve photo" });
-        }
-
+    try {
+	const result = await sql.query(query, [id]);
         if (result.length === 0) {
             return res.status(404).json({ message: "Photo not found" });
         }
@@ -970,9 +966,20 @@ app.get("/photo/:id", (req, res) => {
         // Send the photo buffer as a response
         res.set("Content-Type", "image/jpeg");  // Adjust according to image type
         res.send(result[0].photo);
-    });
+    }
+	catch (err) {
+            console.error("Error retrieving photo:", err);
+            return res.status(500).json({ error: "Failed to retrieve photo" });
+        }
+
+
+
 });
 
+
+//NOTE THAT PUT AND DELETE REQUEST DO NOT WORK AS OF RIGHT NOW
+//THEY ARE USING CALLBACKS ON A PROMISE BASED CONNECTION
+//AND db SHOULD BE sql
 // Update a photo by ID (PUT /photo/:id)
 app.put("/photo/:id", upload.single("photo"), (req, res) => {
     const { id } = req.params;

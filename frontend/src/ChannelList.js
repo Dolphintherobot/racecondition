@@ -1,21 +1,20 @@
-import DeleteButton from "./DeleteButton"
-import {useParams} from "react-router"
+import { useParams } from "react-router"
+import './App.css';
 
-export function ChannelList(props) {
+function ChannelList() {
+  const { query } = useParams();
 
-	const {query} = useParams();
-
-
-
-	return (
-		<>
-			<p> welcome to a list of channels </p>
-			<DeleteButton/>
-		</>
-	)
-
+  return (
+    <div className="container">
+      <div className="card">
+        <h2>Channels</h2>
+        <p>Search results for: {query}</p>
+        <div className="list-unstyled">
+          {/* Channels would be rendered here */}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-
 export default ChannelList;
-

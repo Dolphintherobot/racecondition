@@ -1,17 +1,16 @@
-import useState from "react"
-import NavBar from  "./NavBar"
-import {Outlet} from "react-router"
+import NavBar from "./NavBar"
+import { Outlet } from "react-router"
+import './App.css';
 
 function Layout() {
-
-	return (
-		<>
-		<NavBar/>
-		<Outlet/>
-		</>
-	);
+  return (
+    <div className="container">
+      <NavBar />
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  );
 }
-
-
 
 export default Layout;

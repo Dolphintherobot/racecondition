@@ -1,94 +1,31 @@
-import {useNavigate} from "react-router"
-
+import { useNavigate } from "react-router"
+import './App.css';
 
 function DeleteButton(props) {
+  const navigate = useNavigate();
+  
+  const deleteActions = {
+    account: () => fetch(`${process.env.URL || "http://localhost:3002"}/account/${props.id}`, { method: "DELETE" }),
+    channel: () => {
+      fetch(`${process.env.URL || "http://localhost:3002"}/channel/${props.id}`, { method: "DELETE" })
+        .then(() => navigate("/"));
+    },
+    post: () => fetch(`${process.env.URL || "http://localhost:3002"}/post/${props.id}`, { method: "DELETE" }),
+    reply: () => fetch(`${process.env.URL || "http://localhost:3002"}/reply/${props.id}`, { method: "DELETE" })
+  };
 
-	const navigate = useNavigate();
-	
-	let id = props.id
-	let type = props.type; //type of object are we deleting?
-
-	
-	let url = process.env.URL || "http://localhost:3002"
-	
-
-	function deleteAccount() {
-	
-		fetch(url + "/account/" + id, {
-			method: "DELETE",
-		}).then(response => {
-			if (!response.ok) {	
-				throw new Error(`Response status: ${response.status}`)
-				return;
-			}
-			window.alert("Account deleted succesfully");
-			return;
-		})
-	}
-	
-	function deleteChannel() {
-	
-		fetch(url + "/channel/" + id, {
-			method: "DELETE",
-		}).then(response => {
-			if (!response.ok) {	
-				throw new Error(`Response status: ${response.status}`)
-				return;
-			}
-			window.alert("Channel deleted succesfully");
-			navigate("/");
-			return;
-		})
-	}
-	
-	function deletePost() {
-	
-		fetch(url + "/post/" + id, {
-			method: "DELETE",
-		}).then(response => {
-			if (!response.ok) {	
-				throw new Error(`Response status: ${response.status}`)
-				return;
-			}
-			window.alert("Post deleted succesfully");
-			return;
-		})
-	}
-	
-	function deleteReply() {
-	
-		fetch(url + "/reply/" + id, {
-			method: "DELETE",
-		}).then(response => {
-			if (!response.ok) {	
-				throw new Error(`Response status: ${response.status}`)
-				return;
-			}
-			window.alert("Response deleted succesfully");
-			return;
-		})
-	}
-
-
-
-
-	function Delete() {
-	
-		if (type === "post") {deletePost()}
-		else if (type === "channel") {deleteChannel()}
-		else if (type === "account") {deleteAccount()}
-		else if (type === "reply") {deleteReply()}
-
-	}
-
-	return (
-		window.userStatus.isAdmin ?
-		<button onClick = {Delete} > delete {type} </button>
-		: <p> </p>
-	);
-
+  return window.userStatus.isAdmin ? (
+    <button
+      className="btn btn-danger btn-sm"
+      onClick={() => {
+        deleteActions[props.type]()
+          .then(() => window.alert("Delete successful"))
+          .catch(err => console.error(err));
+      }}
+    >
+      Delete {props.type}
+    </button>
+  ) : null;
 }
-
-
 
 export default DeleteButton;

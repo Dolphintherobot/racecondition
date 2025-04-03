@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
+import { Photo } from "./Photo"
 
 export function Users() {
   const display = window.userStatus.isLoggedIn;
@@ -36,7 +37,7 @@ export function Users() {
         {profiles.map((profile) => (
           <li key={profile.id}>
             <Link to={`/user/${profile.id}`}>
-              {profile.job_title || "Untitled Profile"}
+              {profile.username || "Untitled Profile"}
             </Link>
           </li>
         ))}
@@ -47,7 +48,6 @@ export function Users() {
   );
 }
 
-// Profile component with an update form
 export function Profile() {
   const { id } = useParams();
   const [profile, setProfile] = useState(null);
@@ -58,39 +58,21 @@ export function Profile() {
   });
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const loggedInUser = window.userStatus.username;
-  let url = process.env.URL || "http://localhost:3002";
+  const url = process.env.URL || "http://localhost:3002";
 
   useEffect(() => {
     async function fetchProfile() {
-      try {
-        const response = await fetch(`${url}/profile/${id}`, {
-          method: "GET",
-          headers: { "content-type": "application/json" },
-        });
-        if (!response.ok) {
-          throw new Error("Response status " + response.status);
-        }
-        const data = await response.json();
-        setProfile(data.profile);
-        setFormData({
-          job_title: data.profile.job_title || "",
-          interests: data.profile.interests || "",
-          education: data.profile.education || "",
-        });
-      } catch (err) {
-        console.log(err);
-      }
+      const response = await fetch(`${url}/profile/${id}`);
+      const data = await response.json();
+      setProfile(data.profile);
+      setFormData({
+        job_title: data.profile.job_title || "",
+        interests: data.profile.interests || "",
+        education: data.profile.education || "",
+      });
     }
     fetchProfile();
-  }, [id, url]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handlePhotoChange = (e) => {
-    setSelectedPhoto(e.target.files[0]);
-  };
+  }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,104 +80,95 @@ export function Profile() {
     formDataToSend.append("job_title", formData.job_title);
     formDataToSend.append("interests", formData.interests);
     formDataToSend.append("education", formData.education);
-    if (selectedPhoto) {
-      formDataToSend.append("photo", selectedPhoto);
-    }
+    if (selectedPhoto) formDataToSend.append("photo", selectedPhoto);
 
-    try {
-      const response = await fetch(`${url}/profile/${id}`, {
-        method: "PUT",
-        body: formDataToSend,
-      });
-
-      if (response.ok) {
-        alert("Profile updated successfully!");
-       // window.location.reload(); // Refresh the profile
-      } else {
-        throw new Error("Profile update failed");
-      }
-    } catch (err) {
-      console.error("Error updating profile:", err);
-    }
+    await fetch(`${url}/profile/${id}`, {
+      method: "PUT",
+      body: formDataToSend,
+    });
   };
 
-  if (!profile) {
-    return <p>Loading profile...</p>;
-  }
-
-  profile.username = profile.username.replace(/[\n\r\t]/gm, "").trim()
-  const isOwner = profile.username === loggedInUser;
-
-
-
-
+  if (!profile) return <p>Loading...</p>;
 
   return (
-    <div>
-      <h2>Profile Details</h2>
-      <p>
-        <strong>Job Title:</strong> {profile.job_title}
-      </p>
-      <p>
-        <strong>Interests:</strong> {profile.interests}
-      </p>
-      <p>
-        <strong>Education:</strong> {profile.education}
-      </p>
-      {profile.photo_id ? (
-        <img
-          src={`${url}/photo/${profile.photo_id}`}
-          alt="Profile"
-          style={{ maxWidth: "200px" }}
-        />
-      ) : (
-        <p>No profile photo</p>
-      )}
+    <div className="container">
+      <div className="card">
+        <h2>{profile.username}'s Profile</h2>
+        
+        <div className="photo-container">
+          {profile.photo_id ? (
+            <Photo photo_id={profile.photo_id} />
+          ) : (
+            <p>No profile photo</p>
+          )}
+        </div>
 
-      {isOwner && (
-        <div>
-          <h3>Edit Profile</h3>
-          <form onSubmit={handleSubmit} encType="multipart/form-data">
-            <label>
-              Job Title:
+        <div className="form-group">
+          <label>Job Title</label>
+          <p>{profile.job_title || "Not specified"}</p>
+        </div>
+
+        <div className="form-group">
+          <label>Interests</label>
+          <p>{profile.interests || "Not specified"}</p>
+        </div>
+
+        <div className="form-group">
+          <label>Education</label>
+          <p>{profile.education || "Not specified"}</p>
+        </div>
+
+        {profile.username === loggedInUser && (
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
               <input
                 type="text"
+                className="form-control"
                 name="job_title"
                 value={formData.job_title}
-                onChange={handleChange}
+                onChange={(e) => setFormData({...formData, job_title: e.target.value})}
+                placeholder="Job Title"
               />
-            </label>
-            <br />
-            <label>
-              Interests:
+            </div>
+            
+            <div className="form-group">
               <input
                 type="text"
+                className="form-control"
                 name="interests"
                 value={formData.interests}
-                onChange={handleChange}
+                onChange={(e) => setFormData({...formData, interests: e.target.value})}
+                placeholder="Interests"
               />
-            </label>
-            <br />
-            <label>
-              Education:
+            </div>
+            
+            <div className="form-group">
               <input
                 type="text"
+                className="form-control"
                 name="education"
                 value={formData.education}
-                onChange={handleChange}
+                onChange={(e) => setFormData({...formData, education: e.target.value})}
+                placeholder="Education"
               />
-            </label>
-            <br />
-            <label>
-              Profile Photo:
-              <input type="file" accept="image/*" onChange={handlePhotoChange} />
-            </label>
-            <br />
-            <button type="submit">Update Profile</button>
+            </div>
+            
+            <div className="form-group">
+              <input
+                type="file"
+                className="form-control"
+                onChange={(e) => setSelectedPhoto(e.target.files[0])}
+              />
+            </div>
+            
+            <button className="btn btn-primary" type="submit">
+              Update Profile
+            </button>
           </form>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
+
 

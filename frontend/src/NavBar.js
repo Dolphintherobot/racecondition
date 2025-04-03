@@ -1,24 +1,20 @@
-import {Link,Outlet} from "react-router"
-import ChannelList from "./ChannelList.js"
-import Login from "./Login.js"
-import CreateAccount from "./CreateAccount.js"
+import { Link } from "react-router"
 import SearchBar from "./SearchBar"
+
 export function NavBar() {
-
-	return (
-
-		<>
-		<Link to = "/Login"> <button> login </button> </Link>
-		<Link to = "/CreateAccount"> <button> Create Account </button> </Link>
-		<Link to = "/CreateChannel"> <button> Post a new question </button> </Link>
-		<Link to = "/Accounts"> <button> Display all users </button> </Link>
-		
-		<SearchBar/>
-		</>
-	)
-
-
-
+  return (
+    <nav className="navbar">
+      <div className="container">
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <Link to="/Login" className="btn btn-primary">Login</Link>
+          <Link to="/CreateAccount" className="btn btn-primary">Create Account</Link>
+          <Link to="/CreateChannel" className="btn btn-primary">New Question</Link>
+          <Link to="/Accounts" className="btn btn-primary">All Users</Link>
+          <SearchBar />
+        </div>
+      </div>
+    </nav>
+  );
 }
 
 export default NavBar;
