@@ -1,5 +1,7 @@
 import {useState} from "react"
 import {useEffect} from "react"
+import {Buffer} from "buffer";
+
 export function Photo(props) {
     const [photoBase64, setPhotoBase64] = useState(null);
 
@@ -13,9 +15,23 @@ export function Photo(props) {
         reader.readAsDataURL(file);  // This converts file to base64 format
     }
 
-	//console.log(props.photo);
-	useEffect(() => {
-        if (props.photo instanceof File) {
+     async function wrapper() {
+			
+        if (props.photo_id && !props.photo) {
+	
+	    console.log("HELLO");
+	    let photo =  await getPhoto(props.photo_id);
+	    //console.log(photo);
+ 	    // If photo is in Buffer format (from DB or server), convert it to base64
+            photo = await photo.arrayBuffer();
+	    const bufferData = Buffer.from(photo);
+            const base64String = bufferData.toString('base64');
+            
+	    console.log(bufferData);
+	    console.log(base64String);
+		setPhotoBase64(base64String);
+	}
+	else if (props.photo instanceof File) {
             // If the photo is directly a File (not FormData), convert it to base64
             convertFileToBase64(props.photo);
         } else if (props.photo && props.photo instanceof FormData) {
@@ -30,6 +46,11 @@ export function Photo(props) {
             const base64String = bufferData.toString('base64');
             setPhotoBase64(base64String);
         }
+		
+     }
+
+	useEffect( () => {
+		wrapper();
     }, [props.photo]);    return (
         photoBase64 ? (
             <img src={`data:image/jpeg;base64,${photoBase64}`} alt="Account Photo" />
@@ -44,14 +65,16 @@ export async function getPhoto(id) {
 	let url = process.env.URL || "http://localhost:3002"
 	const URL = url + "/photo/"+id
 
-
 	try {
-
+	
+		//console.log("CALLING");
 		let response = await fetch(URL);
+		console.log(response);
 		if (!response.ok) {
 		throw new Error("Error getting photo status code" +response.status);
 		}
 		let photo = await response.blob()
+		console.log(photo);
 		return photo;
 
 	}
