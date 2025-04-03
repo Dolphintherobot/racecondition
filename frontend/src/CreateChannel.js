@@ -1,4 +1,5 @@
 import {useState,useEffect,useContext} from "react"
+import { PhotoForm } from "./Photo"
 import Post from "./Post.js"
 import DeleteButton from "./DeleteButton.js"
 import {useNavigate} from "react-router"
@@ -7,7 +8,7 @@ function CreateChannel() {
 
 	const [data,changeData] = useState("");
 	const [topic,changeTopic] = useState("");
-
+	const [photo,changePhoto] = useState(null);
 	const navigate = useNavigate();
 
 	let username = window.userStatus.username;
@@ -27,19 +28,18 @@ function CreateChannel() {
 	}
 
 
-	function submitChannel() {
+      function submitChannel() {
+    	
+	      let formdata = new FormData();
+	      formdata.append("title",topic);
+    	      formdata.append("description", data);
+              formdata.append("username", username);
+   	      if (photo) formdata.append("photo", photo);
 
-		let thetopic = topic;
-		let thedata = data;
 		fetch(URL, {
 			method: "POST",
-			headers: {"content-type":"application/json"},
-			body:JSON.stringify( {
-				title:thetopic,
-				description:thedata,
-				username:username,
-			},
-			)}).then(response => {
+			body:formdata,	
+		}).then(response => {
 			if (!response.ok) {	
 				throw new Error(`response status: ${response.status}`)
 			}
@@ -75,6 +75,7 @@ function CreateChannel() {
 		placeholder = "enter in a title"/>
 		<input type = "text" onChange = {handleDataUpdate} value = {data}
 		placeholder = "enter in some description"/>
+		<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
 		<button onClick = {submitChannel}> submit </button>
 
 		<DeleteButton/>

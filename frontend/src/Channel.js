@@ -27,7 +27,7 @@ function Channel() {
     changeTopic(event.target.value);
   }
 
-  function submitPost() {
+ function submitPost() {
     const formData = new FormData();
     formData.append("topic", topic);
     formData.append("description", data);
@@ -60,6 +60,12 @@ function Channel() {
     })
     .catch(err => console.log(err));
   }
+
+
+
+
+
+
 
   function cleanData(data) {
     const newPosts = [];
@@ -173,5 +179,7 @@ function Channel() {
     </div>
   );
 }
+
+
 
 export default Channel;
