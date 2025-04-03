@@ -1,90 +1,103 @@
-import {useState,useEffect,useContext} from "react"
+import { useState } from "react"
 import { PhotoForm } from "./Photo"
-import Post from "./Post.js"
 import DeleteButton from "./DeleteButton.js"
-import {useNavigate} from "react-router"
+import { useNavigate } from "react-router"
+import './App.css';
 
 function CreateChannel() {
+  const [data, changeData] = useState("");
+  const [topic, changeTopic] = useState("");
+  const [photo, changePhoto] = useState(null);
+  const navigate = useNavigate();
+  const username = window.userStatus.username;
+  const url = process.env.URL || "http://localhost:3002";
+  const URL = url + "/channel";
+  const isLoggedIn = window.userStatus.isLoggedIn;
 
-	const [data,changeData] = useState("");
-	const [topic,changeTopic] = useState("");
-	const [photo,changePhoto] = useState(null);
-	const navigate = useNavigate();
+  const handleDataUpdate = (event) => changeData(event.target.value);
+  const handleTopicUpdate = (event) => changeTopic(event.target.value);
 
-	let username = window.userStatus.username;
+  const submitChannel = () => {
+    const formdata = new FormData();
+    formdata.append("title", topic);
+    formdata.append("description", data);
+    formdata.append("username", username);
+    if (photo) formdata.append("photo", photo);
 
-	let url = process.env.URL || "http://localhost:3002"
-	const URL = url + "/channel"
+    fetch(URL, {
+      method: "POST",
+      body: formdata,
+    })
+    .then(response => {
+      if (!response.ok) throw new Error(`Response status: ${response.status}`);
+      return response.json();
+    })
+    .then(d => {
+      navigate(`/Channel/${d.channelId}/${d.title}/${d.description}`);
+      window.alert("Channel successfully created");
+      changeTopic("");
+      changeData("");
+    })
+    .catch(err => {
+      window.alert("Error creating channel: " + err);
+      console.log(err);
+    });
+  };
 
-	let isLoggedIn = window.userStatus.isLoggedIn;
-	
+  return isLoggedIn ? (
+    <div className="container">
+      <div className="card">
+        <div className="p-3">
+          <h2 className="text-primary mb-4">Create New Channel</h2>
+          
+          <div className="form-group">
+            <label className="text-primary">Channel Title</label>
+            <input
+              type="text"
+              className="form-control"
+              onChange={handleTopicUpdate}
+              value={topic}
+              placeholder="Enter channel title"
+            />
+          </div>
 
-	function handleDataUpdate(event) {
-		changeData(d => d = event.target.value);
-	}
+          <div className="form-group">
+            <label className="text-primary">Description</label>
+            <input
+              type="text"
+              className="form-control"
+              onChange={handleDataUpdate}
+              value={data}
+              placeholder="Enter channel description"
+            />
+          </div>
 
-	function handleTopicUpdate(event) {
-		changeTopic(t => t = event.target.value);
-	}
+          <div className="form-group">
+            <label className="text-primary">Channel Cover Image</label>
+            <PhotoForm photo={photo} changePhoto={changePhoto} />
+          </div>
 
-
-      function submitChannel() {
-    	
-	      let formdata = new FormData();
-	      formdata.append("title",topic);
-    	      formdata.append("description", data);
-              formdata.append("username", username);
-   	      if (photo) formdata.append("photo", photo);
-
-		fetch(URL, {
-			method: "POST",
-			body:formdata,	
-		}).then(response => {
-			if (!response.ok) {	
-				throw new Error(`response status: ${response.status}`)
-			}
-			else return response.json();
-
-		}).then(d => {	
-			let path = `/Channel/${d.channelId}/${d.title}/${d.description}`
-			window.alert("Channel succesfully created");
-			navigate(path);
-			changeTopic(t => t = "");
-			changeData(d => d = "");
-		}).catch(err => {
-			window.alert("Error creating channel error: " +err);
-			console.log(err)}
-		);
-
-	}
-
-
-
-
-
-
-
-
-	return ( isLoggedIn ?
-
-		<div>
-
-		<h4> Enter in a title and a description for the new Channel  </h4>
-
-		<input type = "text" onChange = {handleTopicUpdate} value = {topic}
-		placeholder = "enter in a title"/>
-		<input type = "text" onChange = {handleDataUpdate} value = {data}
-		placeholder = "enter in some description"/>
-		<PhotoForm photo = {photo} changePhoto = {changePhoto}/>
-		<button onClick = {submitChannel}> submit </button>
-
-		<DeleteButton/>
-	</div>
-		:
-		<p> Log in first before creating a channel </p>
-
-	)
-
+          <div className="d-flex gap-2 mt-4">
+            <button 
+              className="btn btn-primary"
+              onClick={submitChannel}
+            >
+              Create Channel
+            </button>
+            <DeleteButton />
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="container">
+      <div className="card p-3">
+        <p className="text-secondary">
+          Please log in to create a channel
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default CreateChannel;
