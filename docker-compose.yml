@@ -35,4 +35,20 @@ services:
         condition: service_started
 
 
+  frontend:
+      image: myfrontend
+      container_name: frontend
+      build:
+        context: ./frontend
+      ports:
+        - "3000:3000"
+      environment:
+        URL: "http://db-backend:3002"
+      restart: unless-stopped
+      depends_on:
+        website: 
+          condition: service_started
+
+
+
 
