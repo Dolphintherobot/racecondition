@@ -243,14 +243,17 @@ app.get("/channelData/:id", async (req, res) => {
     }
 });
 
-app.post("/channel",async  (req,res) => { 
+app.post("/channel", upload.single("photo"), async (req, res) => {
+    const { title, description, username } = req.body;
+    const photo = req.file;  // The uploaded file (photo)
 
+	/*
 	let title = req.body.title;
 	let description  = req.body.description;
 	let username = req.body.username;
 	let photo = req.body.photo;
+	*/
 	let response = {channelId:0,postId:0,title:title,description:description}
-
 	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
 	let postQuery = "INSERT INTO post (topic,description,channelId,author) VALUES (?,?,?,?)"
 
