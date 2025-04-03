@@ -46,7 +46,7 @@ services:
         URL: "http://db-backend:3002"
       restart: unless-stopped
       depends_on:
-        website: 
+        database-backend: 
           condition: service_started
 
 
