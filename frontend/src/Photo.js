@@ -1,110 +1,91 @@
-import {useState} from "react"
-import {useEffect} from "react"
-import {Buffer} from "buffer";
+import { useState, useEffect } from "react"
+import { Buffer } from "buffer"
+import './App.css';
 
 export function Photo(props) {
-    const [photoBase64, setPhotoBase64] = useState(null);
+  const [photoBase64, setPhotoBase64] = useState(null);
 
-    // This function converts File (from FormData) to Base64 string
-    function convertFileToBase64(file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            // Set the base64 string to the state
-            setPhotoBase64(reader.result.split(',')[1]);  // Remove the prefix
-        };
-        reader.readAsDataURL(file);  // This converts file to base64 format
+  async function wrapper() {
+    if (props.photo_id && !props.photo) {
+      try {
+        const photo = await getPhoto(props.photo_id);
+        const photoArrayBuffer = await photo.arrayBuffer();
+        const bufferData = Buffer.from(photoArrayBuffer);
+        const base64String = bufferData.toString('base64');
+        setPhotoBase64(base64String);
+      } catch (err) {
+        console.error("Error loading photo:", err);
+      }
+    } else if (props.photo instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoBase64(reader.result.split(',')[1]);
+      };
+      reader.readAsDataURL(props.photo);
+    } else if (props.photo?.data) {
+      const bufferData = Buffer.from(props.photo.data);
+      const base64String = bufferData.toString('base64');
+      setPhotoBase64(base64String);
     }
+  }
 
-     async function wrapper() {
-			
-        if (props.photo_id && !props.photo) {
+  useEffect(() => {
+    wrapper();
+  }, [props.photo]);
 
-
-		//DOES NOT WORK 
-	    console.log("HELLO");
-	    let photo =  await getPhoto(props.photo_id);
-	    //console.log(photo);
- 	    // If photo is in Buffer format (from DB or server), convert it to base64
-            photo = await photo.arrayBuffer();
-	    const bufferData = Buffer.from(photo);
-            const base64String = bufferData.toString('base64');
-            
-	    console.log(bufferData);
-	    console.log(base64String);
-		setPhotoBase64(base64String);
-	}
-	else if (props.photo instanceof File) {
-            // If the photo is directly a File (not FormData), convert it to base64
-            convertFileToBase64(props.photo);
-        } else if (props.photo && props.photo instanceof FormData) {
-            // Check if it's FormData
-            const file = props.photo.get('file'); // Get the file from FormData
-            if (file) {
-                convertFileToBase64(file);  // Convert the file to base64
-            }
-        } else if (props.photo && props.photo.data) {
-            // If photo is in Buffer format (from DB or server), convert it to base64
-            const bufferData = Buffer.from(props.photo.data);
-            const base64String = bufferData.toString('base64');
-            setPhotoBase64(base64String);
-        }
-		
-     }
-
-	useEffect( () => {
-		wrapper();
-    }, [props.photo]);    return (
-        photoBase64 ? (
-            <img src={`data:image/jpeg;base64,${photoBase64}`} alt="Account Photo" />
-        ) : (
-            <p>No photo available</p>
-        )
-    );
+  return (
+    <div className="photo-container">
+      {photoBase64 ? (
+        <img 
+          src={`data:image/jpeg;base64,${photoBase64}`} 
+          alt="Uploaded content"
+          className="photo-image"
+        />
+      ) : (
+        <div className="photo-placeholder">
+          <p>No photo available</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
-
+// Rest of the original code remains unchanged
 export async function getPhoto(id) {
-	let url = process.env.URL || "http://localhost:3002"
-	const URL = url + "/photo/"+id
+  let url = process.env.URL || "http://localhost:3002";
+  const URL = url + "/photo/" + id;
 
-	try {
-	
-		//console.log("CALLING");
-		let response = await fetch(URL);
-		console.log(response);
-		if (!response.ok) {
-		throw new Error("Error getting photo status code" +response.status);
-		}
-		let photo = await response.blob()
-		console.log(photo);
-		return photo;
-
-	}
-
-	catch (err) {	
-		console.log(err);
-	}
-
-
-
+  try {
+    const response = await fetch(URL);
+    if (!response.ok) {
+      throw new Error("Error getting photo status code " + response.status);
+    }
+    return await response.blob();
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
 }
-
 
 export function PhotoForm(props) {
+  const { photo, changePhoto } = props;
 
-	//pass in useState stuff into props
-	const {photo,changePhoto} = props;
-
-	function fileChangedHandler(event) {
-  		changePhoto(p => p = event.target.files[0])
-	}
-
-return (
-	<div>
-	<input type="file" onChange={fileChangedHandler}/>	
-	</div>
-	)
+  return (
+    <div className="photo-upload">
+      <label className="photo-upload-label">
+        <span>Upload Image</span>
+        <input 
+          type="file" 
+          onChange={(e) => changePhoto(e.target.files[0])}
+          accept="image/*"
+          className="photo-upload-input"
+        />
+      </label>
+      {photo && (
+        <div className="photo-preview">
+          <Photo photo={photo} />
+        </div>
+      )}
+    </div>
+  );
 }
-
-
-
