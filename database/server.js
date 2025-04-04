@@ -1,487 +1,186 @@
 'use strict';
 
-
-
-const cors = require("cors");
 const express = require('express');
 const bodyParser = require('body-parser');
-const app = express();
+const cors = require('cors');
 const path = require('path');
-const mysql = require("mysql2");
-
-const PORT = 8080;
-const DOCKER_IP = "172.23.0.2";  // You may not need this anymore
-
-
-//try connecting to sql database
-const con = mysql.createPool({
-    host: process.env.DB_HOST || "mysql1",
-    port: process.env.DB_PORT || "3306",
-    user: process.env.DB_USER || "user1",
-    password: process.env.DB_PASSWORD || "user1_xxx",
-    database: process.env.DB_DATABASE || "my_database",
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    connectTimeout: 10000,  // 10 seconds timeout,,
-    multipleStatements:true,
-});
-
-
-
-con.getConnection((err, connection) => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-        process.exit(-1);
-    }
-    console.log('Successfully connected to the database');
-    connection.release();  // Don't forget to release the connection
-});
-
-const sql = con.promise();
-
-const createTablesQuery = `
-CREATE TABLE IF NOT EXISTS channel (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS post (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    topic VARCHAR(255) NOT NULL,
-    description TEXT,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    author VARCHAR(255),
-    channelId INT,
-    photoId INT,
-    FOREIGN KEY (channelId) REFERENCES channel(id) ON DELETE CASCADE
-);
-
-
-CREATE TABLE IF NOT EXISTS photos (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    photo MEDIUMBLOB NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS reply (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    topic VARCHAR(255) NOT NULL,
-    description TEXT,
-    post_id INT,
-    reply_id INT,  -- reference to reply(id) for nested replies
-    photo_id INT,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    author VARCHAR(255)
-);
-
-
-CREATE TABLE IF NOT EXISTS button (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    upvotes INT DEFAULT 0,
-    post_id INT,
-    FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS account (
-    id INT PRIMARY KEY AUTO_INCREMENT, 
-    username VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    isAdmin INT,
-    photo_id INT,
-    FOREIGN KEY (photo_id) REFERENCES photos(id)
-);
-
-CREATE TABLE IF NOT EXISTS replyButton (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    upvotes INT DEFAULT 0,
-    reply_id INT,
-    FOREIGN KEY (reply_id) REFERENCES reply(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS profile (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    upvotes INT DEFAULT 0,
-    account_id INT,
-    photo_id INT,
-    job_title TEXT,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    interests TEXT,
-    education TEXT,
-    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
-);
-
-
-
-
-`
-
 const multer = require('multer');
+const db = require('./database');
 
+const app = express();
+const PORT = 8080;
 
+db.setUp().catch(err => {
+    console.error('Database setup failed:', err);
+    process.exit(1);
+});
 
-//try grabbing the tables for sql 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.text());
 app.use(express.json());
 app.use(cors());
+app.use(express.static("files"));
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-
-
-
-//just fires up some basic sql queries in order
-async function setUp() {
-
-await sql.query(createTablesQuery).catch(err => console.log("error with database" + err));
-await sql.query("INSERT INTO photos (photo) VALUES (?)",[1]).catch(err => console.log(err));
-await sql.query("INSERT INTO account (username,password,isAdmin,photo_id) VALUES (?,?,?,?)",["admin","password",1,1]).catch(err => console.log(err));
-
-
-}
-
-
-setUp();
-
-
-app.get('/', (req,res) => {
-
-	res.sendFile(path.join(__dirname, '/posting.html'));
-
-
-})
-
-
-
-/*all the lovely stuff to do with channels*/
-
-app.get("/channel", async (req,res) => {
-
-	let query = "SELECT * FROM channel"
-
-	sql.query(query).
-		then(d =>  {
-		
-			let [data] = d;
-
-			res.send({channels:data});
-		}).
-		catch(err => console.log(err)) ;
-
-	
-
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '/posting.html'));
 });
 
+app.get("/channel", async (req, res) => {
+    try {
+        const data = await db.getChannels();
+        res.send({ channels: data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch channels" });
+    }
+});
 
 app.get("/channel/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).send({ message: "No channel ID provided" });
-
-    const query = "SELECT * FROM channel WHERE id = ?";
-
     try {
-        const [channel] = await sql.query(query, [id]);
-
-        if (channel.length === 0) {
-            return res.status(404).send({ message: "Channel not found" });
-        }
-
-        res.send({ channel: channel[0] });
+        const channel = await db.getChannelById(req.params.id);
+        if (!channel) return res.status(404).send({ message: "Channel not found" });
+        res.send({ channel });
     } catch (err) {
-        console.error("Error fetching channel:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch channel" });
     }
 });
 
 app.get("/channelData/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).send({ message: "No channel ID provided" });
-
-    // Query to return posts, replies, buttons, and associated photos
-    const query = `
-        SELECT 
-            p.id AS postId, 
-            p.topic AS postTopic,
-            p.description AS postDescription,
-            p.date AS postDate,
-            p.channelId,
-            p.author AS postAuthor,
-            postPhoto.photo AS postPhoto,  -- Select post photo
-            r.id AS replyId,
-            r.topic AS replyTopic,
-            r.description AS replyDescription,
-            r.date AS replyDate,
-            r.author AS replyAuthor,
-            replyPhoto.photo AS replyPhoto,  -- Select reply photo
-            b.id AS buttonId,
-            b.upvotes,
-            b.post_id
-        FROM post AS p
-        LEFT JOIN reply AS r ON p.id = r.post_id
-        LEFT JOIN button AS b ON p.id = b.post_id
-        LEFT JOIN photos AS postPhoto ON p.photoId = postPhoto.id  -- Join to get post photo
-        LEFT JOIN photos AS replyPhoto ON r.photo_id = replyPhoto.id  -- Join to get reply photo
-        WHERE p.channelId = ?
-        ORDER BY p.date;
-    `;
-
     try {
-        let [result] = await sql.execute(query, [id]);
-        if (result.length === 0) {
-            return res.status(404).send({ message: "No data found" });
-        }
-
+        const result = await db.getChannelData(req.params.id);
+        if (result.length === 0) return res.status(404).send({ message: "No data found" });
         res.status(200).json({ result });
     } catch (error) {
-        console.error("Error executing query:", error);
+        console.error("Error fetching channel data:", error);
         res.status(500).send({ message: "Internal server error" });
     }
 });
 
 app.post("/channel", upload.single("photo"), async (req, res) => {
-    const { title, description, username } = req.body;
-    const photo = req.file;  // The uploaded file (photo)
-
-	/*
-	let title = req.body.title;
-	let description  = req.body.description;
-	let username = req.body.username;
-	let photo = req.body.photo;
-	*/
-	let response = {channelId:0,postId:0,title:title,description:description}
-	let channelQuery = "INSERT INTO channel (title,description) VALUES (?,?)"
-	let postQuery = "INSERT INTO post (topic,description,channelId,author) VALUES (?,?,?,?)"
-
-
-	let r = await sql.query(channelQuery,[title,description])
-	r = r[0]
-	response.channelId = r.insertId
-	let result = await createPost(title,description,response.channelId,username,photo);
-	response.postId = result.postId;
-	response.postButtonId = result.postButtonId;
-	response.title = title;
-	response.description = description;
-	res.status(201).json(response);	
-	
-});
-
-
-
-app.post("/channel/search", async (req,res) => {
-
-	const { query } = req.body;
-
-
-	let q = "SELECT * FROM channel WHERE title LIKE CONCAT('%',?,'%') OR description LIKE CONCAT('%',?,'%')"
-
-	sql.query(q,[query,query]).
-		then(d =>  {
-		
-			let [data] = d;
-
-			res.send({channels:data});
-		}).
-		catch(err => {console.log(err)
-
-			res.status(500).send("Internal server error");
-		}) ;
-
-	
-
-});
-
-
-
-
-
-
-app.put("/channel/:id",async (req,res) => {
-
-	/*data has be be in the format
-	 * id -> id you wish to update
-	 * topic --> topic you wish to update 
-	 * description you wish to update
-	 */
-
-	let id = req.params.id
-
-	if (!id) {
-	
-		res.status(404).send({message:"no id given"});
-
-	}
-
-	let title = req.body.title
-	let description = req.body.description;
-
-	const q = "UPDATE channel SET title = ?,description = ? WHERE id = ?"
-
-	try {
-		const  connection = await sql.getConnection();
-
-	try {
-		await connection.beginTransaction();
-		let result = await connection.query(q,[title,description,id]);
-		if (result.affectRows == 0) {
-		
-			throw new Error("Updating channel Failed");
-
-		}
-
-		await connection.commit();
-		//204 is ok but I am not sending you anything
-		res.status(204).end();
-	}
-
-	catch (err) {
-		connection.rollback();
-		console.log(err);
-		//409 stands for resource conflict 
-		res.status(409).json({message:"attempting to update channel simulatenously with another user error message:" + err.message});
-
-		}
-	
-		finally { connection.release();}
-
-	}
-
-		catch (err) { 
-			console.error("Database COnnection Error",err);
-			res.status(500).json({error:"Database error"})
-		}
-
-
-
-});
-
-
-app.delete("/channel/:id", async (req,res) => {
-
-	let id = req.params.id;
-
-	if (!id) {
-	
-		res.status(404).send({message:"no id given"});
-
-	}
-
-
-
-	let q = "DELETE FROM channel where id = ?"
-
-	sql.query(q,[id]).
-		then( r => {
-			let [result] = r;
-			if (result.affectedRows == 0) {
-				//409 stands for resource conflict 
-				res.status(409).send({message:"attempting to delete non existance channel"});
-
-			}
-			else {
-				//204 stands for succesfull process of request
-				//but not returning any data
-				res.status(204).send();
-			}
-
-		
-		})
-	
-
-
-})
-
-
-
-
-/**********************POST CRUD **********************/
-
-// GET /post
-app.get("/post", async (req, res) => {
-    const query = "SELECT * FROM post";
     try {
-        const [posts] = await sql.query(query);
+        const { title, description, username } = req.body;
+        const response = {
+            channelId: 0,
+            postId: 0,
+            title,
+            description
+        };
+
+        const channelId = await db.createChannel(title, description);
+        const postResult = await db.createPostWithPhoto(
+            title,
+            description,
+            channelId,
+            username,
+            req.file?.buffer
+        );
+
+        response.channelId = channelId;
+        response.postId = postResult.postId;
+        response.postButtonId = postResult.postButtonId;
+        res.status(201).json(response);
+    } catch (error) {
+        console.error("Error creating channel:", error);
+        res.status(500).send({ message: "Error creating channel" });
+    }
+});
+
+app.post("/channel/search", async (req, res) => {
+    try {
+        const data = await db.searchChannels(req.body.query);
+        res.send({ channels: data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Internal server error");
+    }
+});
+
+app.put("/channel/:id", async (req, res) => {
+    try {
+        const affectedRows = await db.updateChannel(
+            req.params.id,
+            req.body.title,
+            req.body.description
+        );
+        
+        if (affectedRows === 0) return res.status(404).send({ message: "Channel not found" });
+        res.status(204).end();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+app.delete("/channel/:id", async (req, res) => {
+    try {
+        const affectedRows = await db.deleteChannel(req.params.id);
+        if (affectedRows === 0) return res.status(404).send({ message: "Channel not found" });
+        res.status(204).end();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+app.get("/post", async (req, res) => {
+    try {
+        const posts = await db.getPosts();
         res.send({ posts });
     } catch (err) {
-        console.error("Error fetching posts:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch posts" });
     }
 });
 
-
 app.get("/post/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).send({ message: "No post ID provided" });
-
-    const query = "SELECT * FROM post WHERE id = ?";
-
     try {
-        const [post] = await sql.query(query, [id]);
-
-        if (post.length === 0) {
-            return res.status(404).send({ message: "Post not found" });
-        }
-
-        res.send({ post: post[0] });
+        const post = await db.getPostById(req.params.id);
+        if (!post) return res.status(404).send({ message: "Post not found" });
+        res.send({ post });
     } catch (err) {
-        console.error("Error fetching post:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch post" });
     }
 });
 
-
 app.post("/post", upload.single("photo"), async (req, res) => {
-    const { topic, description, channelId, author } = req.body;
-    const photo = req.file;  // The uploaded file (photo)
-
-    if (!topic || !description || !channelId || !author) {
-        return res.status(400).send({ message: "Missing required fields" });
-    }
-
     try {
-
-	    let result = await createPost(topic,description,channelId,author,photo);
-
-	    res.status(200).send(result);
-        } catch (error) {
+        const { topic, description, channelId, author } = req.body;
+        const result = await db.createPostWithPhoto(
+            topic,
+            description,
+            channelId,
+            author,
+            req.file?.buffer
+        );
+        res.status(200).send(result);
+    } catch (error) {
         console.error("Error creating post:", error);
         res.status(500).send({ message: "Error creating post" });
     }
 });
 
 app.put("/post/:id", upload.single("photo"), async (req, res) => {
-    const { id } = req.params;
-    const { topic, description, author } = req.body;
-    const photo = req.file;  // The uploaded file (photo)
-
-    if (!topic && !description && !author && !photo) {
-        return res.status(400).send({ message: "Nothing to update" });
-    }
-
     try {
         let photoId = null;
-        if (photo) {
-            // Insert the new photo into the photos table
-            const buffer = photo.buffer;
-            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
+        if (req.file) {
+            const photoResult = await db.createPhoto(req.file.buffer);
             photoId = photoResult.insertId;
         }
 
-        // Update the post with new values
-        const [updateResult] = await sql.execute(
-            "UPDATE post SET topic = ?, description = ?, author = ?, photoId = ? WHERE id = ?",
-            [topic, description, author, photoId, id]
+        const affectedRows = await db.updatePost(
+            req.params.id,
+            req.body.topic,
+            req.body.description,
+            req.body.author,
+            photoId
         );
 
-        if (updateResult.affectedRows === 0) {
-            return res.status(404).send({ message: "Post not found" });
-        }
-
+        if (affectedRows === 0) return res.status(404).send({ message: "Post not found" });
         res.status(200).json({ message: "Post updated successfully" });
     } catch (error) {
         console.error("Error updating post:", error);
@@ -490,162 +189,62 @@ app.put("/post/:id", upload.single("photo"), async (req, res) => {
 });
 
 app.delete("/post/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(404).send({ message: "No post ID provided" });
-
-    const query = "DELETE FROM post WHERE id = ?";
-
     try {
-        const [result] = await sql.query(query, [id]);
-
-        if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
-
+        const affectedRows = await db.deletePost(req.params.id);
+        if (affectedRows === 0) return res.status(404).send({ message: "Post not found" });
         res.status(204).end();
     } catch (err) {
-        console.error("Error deleting post:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to delete post" });
     }
 });
 
-
-
-
-
-async function createPost(topic,description,channelId,author,photo) {
-
-    if (!topic || !description || !channelId || !author) {
-        return res.status(400).send({ message: "Missing required fields" });
-    }
-
-    try {
-        let photoId = null;
-        if (photo) {
-            // Convert the photo file to a buffer (for MySQL storage)
-            const buffer = photo.buffer;
-            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            photoId = photoResult.insertId;
-        }
-
-        // Insert post into the post table
-        const [postResult] = await sql.execute(
-            "INSERT INTO post (topic, description, channelId, author, photoId) VALUES (?, ?, ?, ?, ?)",
-            [topic, description, channelId, author, photoId]
-        );
-
-	const [postButton] = await sql.execute(
-		"INSERT INTO button (post_id) VALUES (?)",[postResult.insertId]);
-       return  {
-            message: "Post created successfully",
-            postId: postResult.insertId,
-	    postButtonId:postButton.insertId,
-        }
-
-    }
-	catch (err) {
-
-		console.log("error creating post" + err);
-		return {
-			message:"Error in creating post" + err,
-		}
-
-	}
-
-
-
-}
-/*#################### REPLIES #######################*/
-
-
-// GET /reply
 app.get("/reply", async (req, res) => {
-    const query = "SELECT * FROM reply";
     try {
-        const [replies] = await sql.query(query);
+        const replies = await db.getReplies();
         res.send({ replies });
     } catch (err) {
-        console.error("Error fetching replies:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch replies" });
     }
 });
 
-
 app.get("/reply/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).send({ message: "No reply ID provided" });
-
-    const query = "SELECT * FROM reply WHERE id = ?";
-
     try {
-        const [reply] = await sql.query(query, [id]);
-
-        if (reply.length === 0) {
-            return res.status(404).send({ message: "Reply not found" });
-        }
-
-        res.send({ reply: reply[0] });
+        const reply = await db.getReplyById(req.params.id);
+        if (!reply) return res.status(404).send({ message: "Reply not found" });
+        res.send({ reply });
     } catch (err) {
-        console.error("Error fetching reply:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch reply" });
     }
 });
-
 
 app.get("/nestedReply/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).send({ message: "No reply ID provided" });
-
-    const query = "SELECT * FROM reply WHERE reply_id = ?";
-
     try {
-        const [reply] = await sql.query(query, [id]);
-       	res.send({ reply: reply });
+        const replies = await db.getNestedReplies(req.params.id);
+        res.send({ reply: replies });
     } catch (err) {
-        console.error("Error fetching reply:", err);
-        res.status(500).json({ error: "Failed to fetch reply" });
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch nested replies" });
     }
 });
 
-
-
-
-
-// POST /reply
 app.post("/reply", upload.single("photo"), async (req, res) => {
-    const { topic, description, postId, author,reply_id } = req.body;
-    const photo = req.file;  // The uploaded file (photo)
-
-    if (!topic || !description || (postId == null && reply_id == null) || !author) {
-  
-	    console.log(postId);
-	    console.log(reply_id);
-	    console.log("Missing field");
-	    return res.status(400).send({ message: "Missing required fields" });
-    }
-
     try {
-        let photoId = null;
-        if (photo) {
-            // Convert the photo file to a buffer (for MySQL storage)
-            const buffer = photo.buffer;
-            const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            photoId = photoResult.insertId;
-        }
-
-        // Insert reply into the reply table
-        const [replyResult] = await sql.execute(
-            "INSERT INTO reply (topic, description, post_id, author, photo_id,reply_id) VALUES (?, ?, ?, ?, ?,?)",
-            [topic, description, postId, author, photoId,reply_id]
+        const result = await db.createReplyWithPhoto(
+            req.body.topic,
+            req.body.description,
+            req.body.postId,
+            req.body.author,
+            req.body.reply_id,
+            req.file?.buffer
         );
-
-	    const [replyButton] = await sql.execute(
-		    "INSERT INTO replyButton  (reply_id) VALUES (?)",[replyResult.insertId]);
+        
         res.status(201).json({
             message: "Reply created successfully",
-            replyId: replyResult.insertId,
-	    buttonId: replyButton.insertId,
+            replyId: result.replyId,
+            buttonId: result.buttonId,
         });
     } catch (error) {
         console.error("Error creating reply:", error);
@@ -653,764 +252,268 @@ app.post("/reply", upload.single("photo"), async (req, res) => {
     }
 });
 
-
-
-// DELETE /reply/:id
 app.delete("/reply/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(404).send({ message: "No reply ID provided" });
-
-    const query = "DELETE FROM reply WHERE id = ?";
-
     try {
-        const [result] = await sql.query(query, [id]);
-
-        if (result.affectedRows === 0) return res.status(404).send({ message: "Reply not found" });
-
+        const affectedRows = await db.deleteReply(req.params.id);
+        if (affectedRows === 0) return res.status(404).send({ message: "Reply not found" });
         res.status(204).end();
     } catch (err) {
-        console.error("Error deleting reply:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to delete reply" });
     }
 });
 
-
 app.put("/reply/:id", async (req, res) => {
-    const { topic, description } = req.body;
-    const { id } = req.params;
-    const query = "UPDATE reply SET topic = ?, description = ? WHERE id = ?";
-
-    if (!id) return res.status(404).send({ message: "No post ID provided" });
-
-    const connection = await sql.getConnection();
     try {
-        await connection.beginTransaction();
-        const [result] = await connection.query(query, [topic, description, id]);
-
-        if (result.affectedRows === 0) return res.status(404).send({ message: "Post not found" });
-
-        await connection.commit();
+        const affectedRows = await db.updateReply(
+            req.params.id,
+            req.body.topic,
+            req.body.description
+        );
+        
+        if (affectedRows === 0) return res.status(404).send({ message: "Reply not found" });
         res.status(204).end();
     } catch (err) {
-        await connection.rollback();
-        console.error("Error updating post:", err);
-        res.status(500).json({ error: "Failed to update post" });
-    } finally {
-        connection.release();
+        console.error(err);
+        res.status(500).json({ error: "Failed to update reply" });
     }
 });
 
-
-/****############ BUTTONS ########## **********/
-
 app.get("/button", async (req, res) => {
-    const query = "SELECT * FROM button";
     try {
-        const [buttons] = await sql.query(query);
+        const buttons = await db.getButtons();
         res.send({ buttons });
     } catch (err) {
-        console.error("Error fetching buttons:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch buttons" });
     }
 });
 
 app.get("/button/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).send({ message: "No button ID provided" });
-
-    const query = "SELECT * FROM button WHERE id = ?";
-
     try {
-        const [button] = await sql.query(query, [id]);
-
-        if (button.length === 0) {
-            return res.status(404).send({ message: "Button not found" });
-        }
-
-        res.send({ button: button[0] });
+        const button = await db.getButtonById(req.params.id);
+        if (!button) return res.status(404).send({ message: "Button not found" });
+        res.send({ button });
     } catch (err) {
-        console.error("Error fetching button:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to fetch button" });
     }
 });
 
-
-
-
 app.post("/button", async (req, res) => {
-    const { upvotes, post_id } = req.body;
-    const query = "INSERT INTO button (upvotes, post_id) VALUES (?, ?)";
-
     try {
-        const [result] = await sql.query(query, [upvotes, post_id]);
-        res.status(201).send({ buttonId: result.insertId });
+        const buttonId = await db.createButton(req.body.upvotes, req.body.post_id);
+        res.status(201).send({ buttonId });
     } catch (err) {
-        console.error("Error creating button:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to create button" });
     }
 });
 
-
-
 app.delete("/button/:id", async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) return res.status(404).send({ message: "No button ID provided" });
-
-    const query = "DELETE FROM button WHERE id = ?";
-
     try {
-        const [result] = await sql.query(query, [id]);
-
-        if (result.affectedRows === 0) return res.status(404).send({ message: "Button not found" });
-
+        const affectedRows = await db.deleteButton(req.params.id);
+        if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
         res.status(204).end();
     } catch (err) {
-        console.error("Error deleting button:", err);
+        console.error(err);
         res.status(500).json({ error: "Failed to delete button" });
     }
 });
 
-
 app.put("/button/:id", async (req, res) => {
-    const { id } = req.params;
-    const { upvotes } = req.body;
-
-
-	//it may make more sense to rewrite this to increment
-	//or decrement but for now I will leave it 
-    if (!id || upvotes === undefined) {
-            console.log("Invalid message");
-	    return res.status(400).send({ message: "Invalid data" });
-    }
-
-	    //console.log(id);
-	    //console.log(upvotes);
-    const query = "UPDATE button SET upvotes = ? WHERE id = ?";
-
-    const connection = await sql.getConnection();
     try {
-        await connection.beginTransaction();
-
-        const [result] = await connection.query(query, [upvotes, id]);
-
-        if (result.affectedRows === 0) {
-            await connection.rollback();
-	    console.log("Button not found");
-            return res.status(404).send({ message: "Button not found" });
-        }
-
-        await connection.commit();
-	//console.log("SUCCESS");
-        res.status(204).end();  // No content but request is successful
+        const affectedRows = await db.updateButton(req.params.id, req.body.upvotes);
+        if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
+        res.status(204).end();
     } catch (err) {
-        await connection.rollback();
-        console.log(err);
+        console.error(err);
         res.status(500).json({ error: "Failed to update button" });
-    } finally {
-        connection.release();
     }
 });
 
-
-/*########################### ACCOUNT CRUD/STUFF ########################*/
-
-
-
-
-// CREATE - Add a new account
 app.post('/account', async (req, res) => {
-    const { username, password, isAdmin, photo_id } = req.body;
-
-	//NOTE photos IS NOT PROGRAMMED IN HERE WOULD NEED A PLAN FOR THAT 
     try {
-        const [result] = await sql.execute(
-            'INSERT INTO account (username, password, isAdmin,photo_id) VALUES (?, ?, ?,?)',
-            [username, password, isAdmin,photo_id]
+        const accountId = await db.createAccount(
+            req.body.username,
+            req.body.password,
+            req.body.isAdmin,
+            req.body.photo_id
         );
-	createProfile(result.insertId,null);
-        res.status(201).json({ id: result.insertId, username, password, isAdmin});
+        await db.createProfile(accountId, null);
+        res.status(201).json({ id: accountId });
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-
-
-//check if an account creditionals match the database
 app.post('/account/verify', async (req, res) => {
-    const { username, password } = req.body;
-
     try {
-        const [result] = await sql.execute(
-            'SELECT * FROM account WHERE username = ? AND password = ?',
-            [username, password]
-        );
-	if (result.length  >0 ) {
-		res.status(200).json({ id: result[0].id, username:username, password:password, isAdmin:result[0].isAdmin,});
-	}
-	else {
-		res.status(404).send("Invalid credentails, account not found")
-	}
-
+        const account = await db.verifyAccount(req.body.username, req.body.password);
+        if (!account) return res.status(404).send("Invalid credentials");
+        res.status(200).json(account);
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-
-
-
-
-
-// READ - Get all accounts
 app.get('/account', async (req, res) => {
     try {
-        const [rows] = await sql.execute('SELECT * FROM account');
-        res.json(rows);
+        const accounts = await db.getAccounts();
+        res.json(accounts);
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// READ - Get a specific account by id
 app.get('/account/:id', async (req, res) => {
-    const { id } = req.params;
-
     try {
-        const [rows] = await sql.execute('SELECT * FROM account WHERE id = ?', [id]);
-        if (rows.length === 0) {
-            res.status(404).send('Account not found');
-        } else {
-            res.json(rows[0]);
-        }
+        const account = await db.getAccountById(req.params.id);
+        if (!account) return res.status(404).send('Account not found');
+        res.json(account);
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// UPDATE - Update an account's details
 app.put('/account/:id', async (req, res) => {
-    const { id } = req.params;
-    const { username, password, isAdmin, photo_id } = req.body;
-
     try {
-        const [result] = await sql.execute(
-            'UPDATE account SET username = ?, password = ?, isAdmin = ?, photo_id = ? WHERE id = ?',
-            [username, password, isAdmin, photo_id, id]
+        const affectedRows = await db.updateAccount(
+            req.params.id,
+            req.body.username,
+            req.body.password,
+            req.body.isAdmin,
+            req.body.photo_id
         );
-
-        if (result.affectedRows === 0) {
-            res.status(404).send('Account not found');
-        } else {
-            res.status(200).send('Account updated successfully');
-        }
+        
+        if (affectedRows === 0) return res.status(404).send('Account not found');
+        res.status(200).send('Account updated successfully');
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// DELETE - Delete an account
 app.delete('/account/:id', async (req, res) => {
-    const { id } = req.params;
-
     try {
-        const [result] = await sql.execute('DELETE FROM account WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            res.status(404).send('Account not found');
-        } else {
-            res.status(200).send('Account deleted successfully');
-        }
+        const affectedRows = await db.deleteAccount(req.params.id);
+        if (affectedRows === 0) return res.status(404).send('Account not found');
+        res.status(200).send('Account deleted successfully');
     } catch (err) {
         console.error(err);
         res.status(500).send('Internal Server Error');
     }
 });
 
-//##################### PHOTO CRUD ######################
-
-app.post("/photo", upload.single("photo"), (req, res) => {
-    if (!req.file) {
-        return res.status(400).send({ message: "No photo file uploaded" });
+app.post("/photo", upload.single("photo"), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).send({ message: "No photo uploaded" });
+        const photoId = await db.createPhoto(req.file.buffer);
+        res.status(201).json({ photoId, message: "Photo uploaded successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to upload photo" });
     }
-
-    // Get the binary data from the uploaded photo
-    const photoBuffer = req.file.buffer;
-
-    // Insert the photo into the database
-    const query = "INSERT INTO photos (photo) VALUES (?)";
-    db.query(query, [photoBuffer], (err, result) => {
-        if (err) {
-            console.error("Error uploading photo:", err);
-            return res.status(500).json({ error: "Failed to upload photo" });
-        }
-        res.status(201).json({ photoId: result.insertId, message: "Photo uploaded successfully" });
-    });
 });
 
-// Read a photo by ID (GET /photo/:id)
 app.get("/photo/:id", async (req, res) => {
-    const { id } = req.params;
-
-    const query = "SELECT photo FROM photos WHERE id = ?";
     try {
-	const result = await sql.query(query, [id]);
-        if (result.length === 0) {
-            return res.status(404).json({ message: "Photo not found" });
-        }
-
-        // Send the photo buffer as a response
-        res.set("Content-Type", "image/jpeg");  // Adjust according to image type
-        res.send(result[0].photo);
+        const photo = await db.getPhotoById(req.params.id);
+        if (!photo) return res.status(404).json({ message: "Photo not found" });
+        res.set("Content-Type", "image/jpeg").send(photo);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to retrieve photo" });
     }
-	catch (err) {
-            console.error("Error retrieving photo:", err);
-            return res.status(500).json({ error: "Failed to retrieve photo" });
-        }
-
-
-
 });
 
-
-//NOTE THAT PUT AND DELETE REQUEST DO NOT WORK AS OF RIGHT NOW
-//THEY ARE USING CALLBACKS ON A PROMISE BASED CONNECTION
-//AND db SHOULD BE sql
-// Update a photo by ID (PUT /photo/:id)
-app.put("/photo/:id", upload.single("photo"), (req, res) => {
-    const { id } = req.params;
-
-    if (!req.file) {
-        return res.status(400).send({ message: "No photo file uploaded" });
-    }
-
-    const photoBuffer = req.file.buffer;
-
-    const query = "UPDATE photos SET photo = ? WHERE id = ?";
-    db.query(query, [photoBuffer, id], (err, result) => {
-        if (err) {
-            console.error("Error updating photo:", err);
-            return res.status(500).json({ error: "Failed to update photo" });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Photo not found" });
-        }
-
+app.put("/photo/:id", upload.single("photo"), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).send({ message: "No photo uploaded" });
+        const affectedRows = await db.updatePhoto(req.params.id, req.file.buffer);
+        if (affectedRows === 0) return res.status(404).send({ message: "Photo not found" });
         res.status(200).json({ message: "Photo updated successfully" });
-    });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to update photo" });
+    }
 });
 
-// Delete a photo by ID (DELETE /photo/:id)
-app.delete("/photo/:id", (req, res) => {
-    const { id } = req.params;
-
-    const query = "DELETE FROM photos WHERE id = ?";
-    db.query(query, [id], (err, result) => {
-        if (err) {
-            console.error("Error deleting photo:", err);
-            return res.status(500).json({ error: "Failed to delete photo" });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Photo not found" });
-        }
-
+app.delete("/photo/:id", async (req, res) => {
+    try {
+        const affectedRows = await db.deletePhoto(req.params.id);
+        if (affectedRows === 0) return res.status(404).send({ message: "Photo not found" });
         res.status(200).json({ message: "Photo deleted successfully" });
-    });
-});
-
-// Create Reply Button
-app.post('/replyButton', async (req, res) => {
-    const { reply_id, upvotes } = req.body;
-    try {
-        const [result] = await sql.execute(
-            'INSERT INTO replyButton (reply_id, upvotes) VALUES (?, ?)',
-            [reply_id, upvotes]
-        );
-        res.status(201).json({ id: result.insertId, reply_id, upvotes });
-    } catch (error) {
-        console.error('Error creating reply button:', error);
-        res.status(500).json({ error: 'Database error' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to delete photo" });
     }
 });
-
-// Get all Reply Buttons
-app.get('/replyButton', async (req, res) => {
-    try {
-        const [rows] = await sql.execute('SELECT * FROM replyButton');
-        res.status(200).json(rows);
-    } catch (error) {
-        console.error('Error fetching reply buttons:', error);
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-// Get Reply Button by ID
-app.get('/replyButton/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await sql.execute('SELECT * FROM replyButton WHERE id = ?', [id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'Reply button not found' });
-        }
-        res.status(200).send({button:rows[0]});
-    } catch (error) {
-        console.error('Error fetching reply button:', error);
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-
-
-// Get Reply Button by ID
-app.get('/reply/replyButton/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await sql.execute('SELECT * FROM replyButton WHERE reply_id = ?', [id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'Reply button not found' });
-        }
-        res.status(200).send({button:rows[0]});
-    } catch (error) {
-        console.error('Error fetching reply button:', error);
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-
-
-// Update Reply Button with Transaction
-app.put('/replyButton/:id', async (req, res) => {
-    const { id } = req.params;
-    const upvotes  = req.body.upvotes;
-
-	if (upvotes ==undefined ) {
-	
-		res.status(404).json({message:"Upvotes parameter undefined"});
-
-	}
-
-    //console.log(id);
-    //console.log(upvotes);
-    // Start a transaction
-    const connection = await sql.getConnection();
-
-
-	try {
-        await connection.beginTransaction();  // Start transaction
-
-        // Update the replyButton with the specified ID
-        const [result] = await connection.execute(
-            'UPDATE replyButton SET upvotes = ? WHERE id = ?',
-            [upvotes, id]
-        );
-
-        // If no rows were affected, the replyButton does not exist
-        if (result.affectedRows === 0) {
-            await connection.rollback();  // Rollback transaction if no rows were updated
-            	console.log("id not found" + id);
-		return res.status(404).json({ error: 'Reply button not found' });
-        }
-
-        // Commit the transaction if the update is successful
-        await connection.commit();
-	//console.log("SUCCESS");
-
-        res.status(200).json({ message: 'Reply button updated', upvotes });
-    } catch (error) {
-        // Rollback the transaction in case of an error
-        await connection.rollback();
-        console.error('Error updating reply button:', error);
-        res.status(500).json({ error: 'Database error' });
-    } finally {
-        connection.release();  // Always release the connection
-    }
-});
-
-
-// Delete Reply Button
-app.delete('/replyButton/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [result] = await sql.execute('DELETE FROM replyButton WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Reply button not found' });
-        }
-        res.status(200).json({ message: 'Reply button deleted' });
-    } catch (error) {
-        console.error('Error deleting reply button:', error);
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-
-//######################## Profile stuff 
-async function createProfile(accountId,photo) {
-      
-	let id = 0
-	try {
-		
-	//console.log(accountId)
-		let photoId = null;
-        	if (photo) {
-            	// Convert the photo file to a buffer (for MySQL storage)
-            	const buffer = photo.buffer;
-            	const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            	photoId = photoResult.insertId;
-        	}
-
-	const [result] = await sql.execute(
-            'INSERT INTO profile (account_id,photo_id) VALUES (?,?)',
-            [accountId,photoId]
-        );
-	
-		return result.insertId;
-	}
-
-	catch (err) {
-		console.log(err);
-	}
-}
-
-async function getProfile(id) {
-
-	let query = ""
-	
-
-	if (id) {
-		query =`
-  SELECT * FROM profile as p
-  INNER JOIN account ON account.id = p.account_id
-  WHERE p.id = ?
-  `
-
-		let [rows] = await sql.execute(query, [id]);
-
-		return rows;
-	}
-	else {
-		query = `
-   SELECT * FROM profile as p
-   LEFT JOIN account ON account.id = p.account_id
-   `
-		let [rows] = await sql.execute(query, [id]);
-		return rows;
-	}
-
-
-
-}
-
-
 
 app.get('/profile/:id', async (req, res) => {
-    const { id } = req.params;
     try {
-        const rows = await getProfile(id);
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "profile not found" });
-        }
-        res.status(200).send({profile:rows[0]});
+        const profile = await db.getProfile(req.params.id);
+        if (profile.length === 0) return res.status(404).json({ error: "Profile not found" });
+        res.status(200).send({ profile: profile[0] });
     } catch (error) {
-        console.error('Error profile:', error);
+        console.error(error);
         res.status(500).json({ error: 'Database error' });
     }
 });
-
 
 app.get('/profile', async (req, res) => {
     try {
-	 
-        const rows = await getProfile(null);
-	if (rows.length === 0) {
-            return res.status(404).json({ error: "profile not found" });
-        }
-        res.status(200).send({profile:rows});
+        const profiles = await db.getProfile();
+        res.status(200).send({ profiles });
     } catch (error) {
-        console.error('Error profile:', error);
+        console.error(error);
         res.status(500).json({ error: 'Database error' });
     }
 });
-
 
 app.post('/profile/search', async (req, res) => {
-    
-	const {query} = req.body;
-	try {
-	 const q = `
-         SELECT * FROM account as a
-         INNER JOIN profile as p ON a.id = p.account_id
-         WHERE a.username LIKE CONCAT('%',?,'%')
-         `
-        
-
-	const [rows] = await sql.execute(q,[query]);
-        //console.log(rows);
-	if (rows.length === 0) {
-            return res.status(404).json({ error: "profile not found" });
-        }
-        res.status(200).send({profile:rows});
+    try {
+        const results = await db.searchProfiles(req.body.query);
+        res.status(200).send({ profiles: results });
     } catch (error) {
-        console.error('Error profile:', error);
+        console.error(error);
         res.status(500).json({ error: 'Database error' });
     }
 });
-
-
-
 
 app.get('/profile/score/:author', async (req, res) => {
-    
-
-	const {author} = req.params;
-
-	try {
-        const result = await computeUpvotes(author);
-        if (result === -1) {
-            return res.status(404).json({ error: "profile not found" });
-        }
-        res.status(200).send({upvotes:result});
+    try {
+        const score = await db.computeUpvotes(req.params.author);
+        if (score === -1) return res.status(404).json({ error: "Profile not found" });
+        res.status(200).send({ upvotes: score });
     } catch (error) {
-        console.error('Error profile:', error);
+        console.error(error);
         res.status(500).json({ error: 'Database error' });
     }
 });
 
-
-
-
-async function computeUpvotes(author) {
-
-const q1 = 
-`
-    SELECT
-      p.id as post_id,
-      p.author as postAuthor,
-      b.upvotes as postUpvotes,
-      SUM(b.upvotes) as total
-      FROM post as p
-      JOIN button as b ON b.post_id = p.id
-      WHERE p.author = ?
-      GROUP BY p.id,p.author,b.upvotes
-`
-
-
-const q2 = 
-`
-    SELECT
-      r.id as reply_id,
-      r.author as replyAuthor,
-      rb.upvotes as replyUpvotes,
-      SUM(rb.upvotes) as total
-      FROM reply as r
-      JOIN replyButton as rb ON rb.reply_id = r.id
-      WHERE r.author = ?
-      GROUP BY r.id,r.author,rb.upvotes
-`
-
-
-
-	//const [result] =  await sql.execute(query,[author]);
-
-	const [postResult] = await sql.execute(q1,[author])
-	const [replyResult] = await sql.execute(q2,[author])
-
-	//console.log(postResult)
-	//console.log(replyResult[0].total)
-
-	let total = 0
-	postResult.forEach( e => {
-	
-		total = total + parseInt(e.total)
-	})
-
-	replyResult.forEach( e => {
-		total = total + parseInt(e.total)
-	})
-
-
-	if (postResult.length === 0 && replyResult.length === 0) {
-		return -1;
-	}
-
-
-	return total
-	//return parseInt(postResult[0].total) + parseInt(replyResult[0].total)
-
-}
-
-
 app.put("/profile/:id", upload.single("photo"), async (req, res) => {
-    let id = req.params.id;
-
-    if (!id) {
-        return res.status(400).send({ message: "No ID provided" });
-    }
-
-    let { job_title, interests, education } = req.body;
-    let photo = req.file ? req.file.buffer : null;
-
-    const getCurrentPhotoQuery = `SELECT photo_id FROM profile WHERE id = ?`;
-    const insertPhotoQuery = `INSERT INTO photos (photo) VALUES (?)`;
-    const updateProfileQuery = `UPDATE profile SET job_title = ?, interests = ?, education = ? ${photo ? ", photo_id = ?" : ""} WHERE id = ?`;
-
     try {
-        const connection = await sql.getConnection();
-
-        try {
-            await connection.beginTransaction();
-
-            let photo_id = null;
-            
-            if (photo) {
-                // Insert new photo and get its ID
-                const [photoResult] = await connection.query(insertPhotoQuery, [photo]);
-                photo_id = photoResult.insertId;
-            } else {
-                // No new photo uploaded → Get current photo_id
-                const [rows] = await connection.query(getCurrentPhotoQuery, [id]);
-                if (rows.length > 0) {
-                    photo_id = rows[0].photo_id; // Preserve existing photo_id
-                }
-            }
-
-            // Build the update query dynamically
-            const queryParams = [job_title, interests, education];
-            if (photo) queryParams.push(photo_id);
-            queryParams.push(id);
-
-            let [result] = await connection.query(updateProfileQuery, queryParams);
-
-            if (result.affectedRows === 0) {
-                throw new Error("Updating profile failed - no matching record found");
-            }
-
-            await connection.commit();
-            res.status(204).end(); // 204 - No Content (update successful, nothing to return)
-        } catch (err) {
-            await connection.rollback();
-            console.log(err);
-            res.status(409).json({ message: "Conflict while updating profile: " + err.message });
-        } finally {
-            connection.release();
-        }
-    } catch (err) {
-        console.error("Database Connection Error", err);
-        res.status(500).json({ error: "Database error" });
+        const affectedRows = await db.updateProfile(
+            req.params.id,
+            req.body.job_title,
+            req.body.interests,
+            req.body.education,
+            req.file?.buffer
+        );
+        
+        if (affectedRows === 0) return res.status(404).json({ error: "Profile not found" });
+        res.status(204).end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Database error' });
     }
 });
 
-
-
-app.use(express.static("files"));
-
-app.listen(PORT);
-console.log("up and running");
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
