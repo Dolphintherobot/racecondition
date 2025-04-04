@@ -1,10 +1,8 @@
-import logo from './logo.svg';
 import './App.css';
 import Channel from "./Channel.js"
 import {useContext,useState,createContext} from "react"
 import {HashRouter as Router,Routes,Route} from "react-router"
 import Landing from "./Landing.js"
-import ChannelList from "./ChannelList.js"
 import Login from "./Login.js"
 import CreateAccount from "./CreateAccount.js"
 import Layout from  "./Layout"

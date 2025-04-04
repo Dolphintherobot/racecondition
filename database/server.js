@@ -1158,7 +1158,7 @@ async function createProfile(accountId,photo) {
 	let id = 0
 	try {
 		
-	console.log(accountId)
+	//console.log(accountId)
 		let photoId = null;
         	if (photo) {
             	// Convert the photo file to a buffer (for MySQL storage)

@@ -1,4 +1,3 @@
-import ChannelList from "./ChannelList"
 import {useState,useEffect} from "react"
 import {useParams} from "react-router"
 import ChannelContainer from "./ChannelContainer.js"
