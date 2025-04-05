@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS buttonLogs (
     hasUpvoted BIT,
     hasDownvoted BIT,
     FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
-    FOREIGN KEY (button_id) REFERENCES button(id) ON DELETE CASCADE
+    FOREIGN KEY (button_id) REFERENCES button(id) ON DELETE CASCADE,
     FOREIGN KEY (replyButton_id) REFERENCES replyButton(id) ON DELETE CASCADE
 );
    
@@ -302,6 +302,19 @@ async function deleteButton(id) {
 }
 
 
+//upvote and downvote are booleans 
+async function createLogs(button_id,account_id,upvote,downvote,type) {
+
+	const query = type === "post" ?
+	"INSERT INTO buttonLogs (button_id,account_id,upvote,downvote,replyButton_id) VALUES (?,?,?,?,?)":
+	"INSERT INTO buttonLogs (replyButton_id,account_id,upvote,downvote,button_id) VALUES (?,?,?,?,?)"	
+	const [result] = await sql.query(query,[button_id,account_id,upvote,downvote,null]);
+	return result;
+
+}
+
+
+
 async function checkLogs(button_id,account_id) {
 
 	const query = "SELECT * FROM buttonLogs WHERE account_id = ? AND ( WHERE button_id = ? OR replyButtonId = ?)"
@@ -309,6 +322,21 @@ async function checkLogs(button_id,account_id) {
 	return result;
 
 }
+
+
+
+
+async function updateLogs(id,hasUpvoted,hasDownvoted) {
+
+        const query = 'UPDATE buttonLogs SET hasUpvoted = ?, hasDownvoted = ? WHERE id = ?';
+	const [result] = await sql.query(query,[hasUpvoted,hasDownvoted,id]);
+	return result.affectedRows;
+
+}
+
+
+
+
 
 
 async function updateButton(id, upvotes,increment) {
@@ -520,5 +548,8 @@ module.exports = {
     getProfile,
     searchProfiles,
     computeUpvotes,
-    updateProfile
+    updateProfile,
+    createLogs,
+    checkLogs,
+    updateLogs
 };
