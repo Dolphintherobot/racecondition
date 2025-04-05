@@ -85,7 +85,22 @@ CREATE TABLE IF NOT EXISTS profile (
     interests TEXT,
     education TEXT,
     FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
-);`;
+);
+
+CREATE TABLE IF NOT EXISTS buttonLogs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    account_id INT,
+    button_id INT,
+    replyButton_id INT,
+    hasUpvoted BIT,
+    hasDownvoted BIT,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY (button_id) REFERENCES button(id) ON DELETE CASCADE
+    FOREIGN KEY (replyButton_id) REFERENCES replyButton(id) ON DELETE CASCADE
+);
+   
+
+`;
 
 async function setUp() {
     await sql.query(createTablesQuery);
@@ -286,9 +301,46 @@ async function deleteButton(id) {
     return result.affectedRows;
 }
 
-async function updateButton(id, upvotes) {
-    const [result] = await sql.query("UPDATE button SET upvotes = ? WHERE id = ?", [upvotes, id]);
-    return result.affectedRows;
+
+async function checkLogs(button_id,account_id) {
+
+	const query = "SELECT * FROM buttonLogs WHERE account_id = ? AND ( WHERE button_id = ? OR replyButtonId = ?)"
+	const [result] = await sql.query(query,[account_id,button_id,button_id]);
+	return result;
+
+}
+
+
+async function updateButton(id, upvotes,increment) {
+    
+ 	 if (!id || upvotes === undefined) {
+            console.log("Invalid message");
+    }
+
+    const query = increment == true ? "UPDATE button SET upvotes = upvotes + 1 WHERE id = ?": "UPDATE button SET upvotes = upvotes - 1 WHERE id = ?";
+
+    const connection = await sql.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [result] = await connection.query(query, [upvotes, id]);
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+	    console.log("Button not found");
+            return result.affectedRows;
+        }
+
+        await connection.commit();
+	//console.log("SUCCESS");
+        res.status(204).end();  // No content but request is successful
+    } catch (err) {
+        await connection.rollback();
+    	return 0;
+    } finally {
+        connection.release();
+    }
+
 }
 
 async function createAccount(username, password, isAdmin, photo_id) {
