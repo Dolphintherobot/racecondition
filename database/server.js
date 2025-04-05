@@ -322,10 +322,32 @@ app.delete("/button/:id", async (req, res) => {
 });
 
 app.put("/button/:id", async (req, res) => {
-    try {
-        const affectedRows = await db.updateButton(req.params.id, req.body.upvotes);
+    
+      const {account_id,action,type} = req.body;
+
+	if (!action || !account_id || type) {
+	
+		return res.status(404).send({message:"Invalid request, specifiy an action,button type and an account id"});
+	}
+	const up = action === "up";
+	const down = !up;
+      try {
+       
+	const logs = await db.checkLogs(id,account_id);
+	 const empty = logs.length === 0
+	if (empty ){ logs = await createLogs(id,account_id,up,!up,type); }
+	
+	const legal =  empty ||( ((logs.hasUpvoted != up ||  !logs.hasUpvoted)
+		&& (logs.hasDownvoted != down || !logs.hasDownvoted) )
+
+	if (!legal) {
+	
+		res.status(403).send({message:" cannot update button username has already persformed the action",logs})
+
+	}
+	const affectedRows = await db.updateButton(req.params.id, req.body.upvotes);
         if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
-        res.status(204).end();
+        res.status(204).send({logs});
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to update button" });
