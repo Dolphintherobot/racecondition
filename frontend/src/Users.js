@@ -25,7 +25,7 @@ export function Users() {
         throw new Error("Response status " + response.status);
       }
       const data = await response.json();
-      setProfiles(data.profile);
+      setProfiles(data.profiles);
     } catch (err) {
       console.log(err);
     }
