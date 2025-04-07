@@ -362,14 +362,24 @@ app.put("/button/:id", async (req, res) => {
 	//ensure that the logs get set correctly such that 
 	      //if a person undoing a upvote or downvote is 
 	      //not blocked from downvoting
-	if (down && logs[0].hasUpvoted) {
+	if (down && logs[0].hasUpvoted && !logs[0].hasDownvoted) {
 		up = false;
 		down = false;
 	}
-	else if (up && logs[0].hasDownVoted) {
+	else if (up && logs[0].hasDownvoted && !logs[0].hasUpvoted) {
 		down = false;
 		up = false;
 	}
+
+	      /*
+	else if (!(logs[0].hasDownvoted || logs[0].hasUpvoted))
+	      {
+		      down = false;
+		      up = false;
+	      }*/
+	      console.log(logs)
+	      console.log(up)
+	      console.log(down)
 	logs = await db.updateLogs(logs[0].id,up,down);
 	res.status(203).send({logs});
     } catch (err) {
