@@ -38,14 +38,18 @@ export function Login() {
             })
             .then(response => {
               if (response.ok) {
-                window.userStatus = {
+                  window.alert("Successful login");
+              	  return response.json();
+	      }
+            }).then(d => {
+		window.userStatus = {
                   isLoggedIn: true,
                   username: username,
-                  isAdmin: response.json().then(d => d.isAdmin == 1)
+                  isAdmin: d.isAdmin == 1,
+		  id:d.id,
                 };
-                window.alert("Successful login");
-              }
-            })
+
+	    })
             .catch(err => window.alert(err));
           }}
         >

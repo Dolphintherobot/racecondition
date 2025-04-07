@@ -19,6 +19,7 @@ window.userStatus = {
 	isLoggedIn:false,
 	isAdmin:false,
 	username:"",
+	id:undefined,
 };
 
 

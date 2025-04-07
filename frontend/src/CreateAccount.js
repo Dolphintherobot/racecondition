@@ -41,14 +41,19 @@ export function CreateAccount() {
             })
             .then(response => {
               if (response.ok) {
-                window.userStatus = {
+                  window.alert("Account created successfully");
+		      return response.json()
+              }
+            }).then(d => {
+	    
+		  window.userStatus = {
                   isLoggedIn: true,
                   username: username,
-                  isAdmin: false
+                  isAdmin: false,
+		  id:d.id,
                 };
-                window.alert("Account created successfully");
-              }
-            });
+
+	    });
           }}
         >
           Create Account
