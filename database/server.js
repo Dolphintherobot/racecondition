@@ -339,8 +339,8 @@ app.put("/button/:id", async (req, res) => {
 
 	}
 
-	const up = action === "up";
-	const down = !up;
+	let up = action === "up";
+	let down = !up;
       try {
        
 	 let logs = await db.checkLogs(id,account_id);
@@ -358,7 +358,19 @@ app.put("/button/:id", async (req, res) => {
 	}
 	const affectedRows = await db.updateButton(req.params.id,up);
         if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
-        logs = await db.updateLogs(logs[0].id,up,!up);
+        
+	//ensure that the logs get set correctly such that 
+	      //if a person undoing a upvote or downvote is 
+	      //not blocked from downvoting
+	if (down && logs[0].hasUpvoted) {
+		up = false;
+		down = false;
+	}
+	else if (up && logs[0].hasDownVoted) {
+		down = false;
+		up = false;
+	}
+	logs = await db.updateLogs(logs[0].id,up,down);
 	res.status(203).send({logs});
     } catch (err) {
         console.error(err);
