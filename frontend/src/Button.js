@@ -4,79 +4,95 @@ function Button(props) {
 
 	let x = props.upvotes || 0
 	const [count,changeCount] = useState(x);
-
+	let account_id = window.userStatus.id;
 	const [id,changeId] = useState(props.id)
+	const [logs,changeLogs] = useState({})
 	useEffect(() => {
 		getButtonData();
 	},[]);
 
-	
 	let url = process.env.URL || "http://localhost:3002"
+	let type = ""
 
 	//console.log("My Id is " + id)
 	let URL = ""
 	if (props.postId) {
 	URL = url + "/button/"+ props.id
-
 	//	console.log("picking postButton")
+	type = "post"
 	}
 
 	else if (props.replyId && id == undefined) {
 	
 	//	console.log("picking replyButton")
 		URL = url + "/reply/replyButton/" + props.replyId
-
+		type = "reply"
 	}
 
 	else {
 		let temp = props.id || id
-	URL = url + "/replyButton/"+ temp
-
+		URL = url + "/replyButton/"+ temp
+		type = "reply"
 	//	console.log("picking replyButton with own id")
 	}
 
 	//console.log(URL)
 	function handleIncrement() {
-		changeCount(c =>  {
-			c = c+1	
-			updateButton(c);
-			return c;
-		});
+		if (logs.hasUpvoted) return;
+		updateButton("up");
 	}
 
-	function handleDecrement() {
-		changeCount(c => { c = c-1
-		
-			updateButton(c);
-			return c;
-
-		});
+	function handleDecrement() {	
+		if (logs.hasDownvoted) return;
+		updateButton("down");
 	}
 
 
 
 
-	async function updateButton(upvotes) {
+	async function updateButton(action) {
 		//console.log(URL);
 		//console.log("my Id update is " +id);
-		//console.log(count == undefined);
-		//let upvotes = count;
-		//console.log("my upvotes is  " + count);
+		//console.log(action);
+		//console.log(type);
+		//console.log(account_id);
 		fetch(URL,{
 			method:"PUT",
 			headers: {"Content-type":"application/json"},
 			body: JSON.stringify({
 				id: id,
-				upvotes:upvotes,
+				action:action,
+				account_id:account_id,
+				type:type,
 			})
 
 		}).
 			then(response => {
-				if (!response.ok) {	
+				if (!response.ok) {
+					if (response.status == 403) {
+						return response.json().then(data => {
+						changeLogs(l => {l = data.logs
+						return l;});
+						
+					throw new Error("Response status" + response.status + data.message)
+
+						})
+					}
 					return response.json().then(text => {throw new Error("Response status" + response.status + text.message + text.error)});	
 				}
+				return response.json()
 				
-			}).catch(err => console.log(err));
+			}).then(d => {
+
+				//console.log(d.logs);
+				if (action === "up") changeCount(c => c = c +1 )
+				else changeCount(c => c =  c - 1)
+				changeLogs(l => { l = d.logs
+					return l
+				})
+
+			})
+			.catch(err => console.log(err));
 	}
 
 
