@@ -338,7 +338,7 @@ app.put("/button/:id", async (req, res) => {
 	if (empty ){ logs = await createLogs(id,account_id,up,!up,type); }
 	
 	const legal =  empty ||( ((logs.hasUpvoted != up ||  !logs.hasUpvoted)
-		&& (logs.hasDownvoted != down || !logs.hasDownvoted) )
+		&& (logs.hasDownvoted != down || !logs.hasDownvoted) ));
 
 	if (!legal) {
 	
