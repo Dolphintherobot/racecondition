@@ -317,7 +317,7 @@ async function createLogs(button_id,account_id,upvote,downvote,type) {
 
 async function checkLogs(button_id,account_id) {
 
-	const query = "SELECT * FROM buttonLogs WHERE account_id = ? AND ( WHERE button_id = ? OR replyButtonId = ?)"
+	const query = "SELECT * FROM buttonLogs WHERE account_id = ? AND ( button_id = ? OR replyButtonId = ?)"
 	const [result] = await sql.query(query,[account_id,button_id,button_id]);
 	return result;
 
