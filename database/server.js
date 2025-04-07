@@ -325,7 +325,7 @@ app.put("/button/:id", async (req, res) => {
     
       const {account_id,action,type} = req.body;
 
-	if (!action || !account_id || type) {
+	if (!action || !account_id || !type) {
 	
 		return res.status(404).send({message:"Invalid request, specifiy an action,button type and an account id"});
 	}
