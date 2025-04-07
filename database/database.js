@@ -3,7 +3,7 @@
 const mysql = require("mysql2");
 
 const con = mysql.createPool({
-    host: process.env.DB_HOST || "mysql1",
+    host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT || "3306",
     user: process.env.DB_USER || "user1",
     password: process.env.DB_PASSWORD || "user1_xxx",
@@ -302,22 +302,26 @@ async function deleteButton(id) {
 }
 
 
-//upvote and downvote are booleans 
-async function createLogs(button_id,account_id,upvote,downvote,type) {
+async function createLogs(button_id, account_id, upvote, downvote, type) {
+    let query, params;
 
-	const query = type === "post" ?
-	"INSERT INTO buttonLogs (button_id,account_id,upvote,downvote,replyButton_id) VALUES (?,?,?,?,?)":
-	"INSERT INTO buttonLogs (replyButton_id,account_id,upvote,downvote,button_id) VALUES (?,?,?,?,?)"	
-	const [result] = await sql.query(query,[button_id,account_id,upvote,downvote,null]);
-	return result;
+    if (type === "post") {
+        query = "INSERT INTO buttonLogs (button_id, account_id, hasUpvoted, hasDownvoted, replyButton_id) VALUES (?, ?, ?, ?, ?)";
+        params = [button_id, account_id, upvote, downvote, null]; 
+    } else {
+        query = "INSERT INTO buttonLogs (replyButton_id, account_id, hasUpvoted, hasDownvoted, button_id) VALUES (?, ?, ?, ?, ?)";
+        params = [button_id, account_id, upvote, downvote, null];
+    }
 
+    const [result] = await sql.query(query, params);
+    return result;
 }
 
 
 
 async function checkLogs(button_id,account_id) {
 
-	const query = "SELECT * FROM buttonLogs WHERE account_id = ? AND ( button_id = ? OR replyButtonId = ?)"
+	const query = "SELECT * FROM buttonLogs WHERE account_id = ? AND ( button_id = ? OR replyButton_id = ?)"
 	const [result] = await sql.query(query,[account_id,button_id,button_id]);
 	return result;
 
@@ -338,11 +342,11 @@ async function updateLogs(id,hasUpvoted,hasDownvoted) {
 
 
 
-
-async function updateButton(id, upvotes,increment) {
+async function updateButton(id,increment) {
     
- 	 if (!id || upvotes === undefined) {
+ 	 if (!id || increment === undefined) {
             console.log("Invalid message");
+	    return 0;
     }
 
     const query = increment == true ? "UPDATE button SET upvotes = upvotes + 1 WHERE id = ?": "UPDATE button SET upvotes = upvotes - 1 WHERE id = ?";
@@ -351,7 +355,7 @@ async function updateButton(id, upvotes,increment) {
     try {
         await connection.beginTransaction();
 
-        const [result] = await connection.query(query, [upvotes, id]);
+        const [result] = await connection.query(query, [id]);
 
         if (result.affectedRows === 0) {
             await connection.rollback();
@@ -361,7 +365,7 @@ async function updateButton(id, upvotes,increment) {
 
         await connection.commit();
 	//console.log("SUCCESS");
-        res.status(204).end();  // No content but request is successful
+	return result.affectedRows
     } catch (err) {
         await connection.rollback();
     	return 0;
