@@ -322,13 +322,23 @@ app.delete("/button/:id", async (req, res) => {
 });
 
 app.put("/button/:id", async (req, res) => {
-    
+   
+
+	const id =  req.params.id;
       const {account_id,action,type} = req.body;
 
 	if (!action || !account_id || !type) {
 	
 		return res.status(404).send({message:"Invalid request, specifiy an action,button type and an account id"});
 	}
+
+
+	if (!id) {
+	
+		return res.status(404).send({message:"Null id was passed in"});
+
+	}
+
 	const up = action === "up";
 	const down = !up;
       try {
