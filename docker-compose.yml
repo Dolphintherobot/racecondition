@@ -13,4 +13,42 @@ services:
       - "3307:3306"  # External:Internal MySQL port mapping
     volumes:
       - "./mydatabase:/var/lib/mysql" 
+ 
+  database-backend:
+    image: db-backend
+    container_name: db-backend
+    build:
+      context: ./database
+    ports:
+      - "3002:8080"
+    restart: always
+    environment:
+      DB_HOST: "mysql1"  # Use the service name to connect to the MySQL container
+      DB_PORT: 3306  # The internal MySQL port
+      DB_DATABASE: "my_database"
+      DB_USER: "user1"
+      DB_PASSWORD: "user1_xxx"
+      COUCHDB_URL:  "http:couchdb:5984"
+      COUCHDB_DB: "questionsdb"
+    depends_on:
+      mysql1:
+        condition: service_started
+
+
+          #frontend:
+          #image: myfrontend
+          #container_name: frontend
+          #build:
+          #context: ./frontend
+          #ports:
+          #- "3000:3000"
+          #environment:
+          #URL: "http://db-backend:3002"
+          #restart: unless-stopped
+          #depends_on:
+          #database-backend: 
+          #condition: service_started
+
+
+
 
