@@ -346,18 +346,20 @@ app.put("/button/:id", async (req, res) => {
 	 let logs = await db.checkLogs(id,account_id);
 	 const empty = logs.length === 0
 	if (empty ){ logs = await db.createLogs(id,account_id,up,!up,type); }
-	
-	const legal =  empty ||( ((logs.hasUpvoted != up ||  !logs.hasUpvoted)
-		&& (logs.hasDownvoted != down || !logs.hasDownvoted) ));
+
+	      //console.log(logs);
+	const legal =  empty ||( ((logs[0].hasUpvoted != up ||  !logs[0].hasUpvoted)
+		&& (logs[0].hasDownvoted != down || !logs[0].hasDownvoted) ));
 
 	if (!legal) {
 	
-		res.status(403).send({message:" cannot update button username has already persformed the action",logs})
+		return res.status(403).send({message:" cannot update button username has already persformed the action",logs})
 
 	}
 	const affectedRows = await db.updateButton(req.params.id,up);
         if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
-        res.status(203).send({logs});
+        logs = await db.updateLogs(logs[0].id,up,!up);
+	res.status(203).send({logs});
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to update button" });
