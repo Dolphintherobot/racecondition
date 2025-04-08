@@ -23,7 +23,7 @@ async function readFile(name) {
  * will create a file to stash it away in
  * assumes the filepath is not passed in and will be added in
  */
-function createFile(name,buffer) {
+async function createFile(name,buffer) {
 
 	name = filePath + name
 
@@ -37,9 +37,36 @@ function createFile(name,buffer) {
 
 }
 
+/*Deletes a file given its name
+ * returns true upon success, false otherwise
+ */
+async function deleteFile(name) {
+
+	name = path + name;
+	try {
+		await fs.unlink(name)
+		return true;
+	}
+	catch (err) {
+	console.log(err)
+		return false
+	}
+}
+
+
 /*
  * Given a sql id will turn it into a string with the extension .jpg
  */
 function idToJpgName(id) {
 	return id.toString() + ".jpg"
+}
+
+
+
+
+modules.exports = {
+	readFile,
+	createFile,
+	idToJpgName,
+	deleteFile,
 }
