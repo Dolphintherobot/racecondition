@@ -187,26 +187,20 @@ async function getChannelData(id) {
         ORDER BY p.date`, [id]);
     return result;
 }
-
 async function createPostWithPhoto(topic, description, channelId, author, buffer) {
     const connection = await sql.getConnection();
     try {
         await connection.beginTransaction();
         let photoId = null;
-
         if (buffer) {
-            const [photoResult] = await connection.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            photoId = photoResult.insertId;
+            photoId = await insertPhoto(buffer, connection);
         }
-
         const [postResult] = await connection.execute(
             "INSERT INTO post (topic, description, channelId, author, photoId) VALUES (?, ?, ?, ?, ?)",
             [topic, description, channelId, author, photoId]
         );
-
         const [postButton] = await connection.execute("INSERT INTO button (post_id) VALUES (?)", [postResult.insertId]);
         await connection.commit();
-        
         return {
             postId: postResult.insertId,
             postButtonId: postButton.insertId
@@ -218,6 +212,8 @@ async function createPostWithPhoto(topic, description, channelId, author, buffer
         connection.release();
     }
 }
+
+
 
 async function getPosts() {
     const [posts] = await sql.query("SELECT * FROM post");
@@ -256,26 +252,20 @@ async function getNestedReplies(id) {
     const [reply] = await sql.query("SELECT * FROM reply WHERE reply_id = ?", [id]);
     return reply;
 }
-
 async function createReplyWithPhoto(topic, description, postId, author, replyId, buffer) {
     const connection = await sql.getConnection();
     try {
         await connection.beginTransaction();
         let photoId = null;
-
         if (buffer) {
-            const [photoResult] = await connection.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            photoId = photoResult.insertId;
+            photoId = await insertPhoto(buffer, connection);
         }
-
         const [replyResult] = await connection.execute(
             "INSERT INTO reply (topic, description, post_id, author, photo_id, reply_id) VALUES (?, ?, ?, ?, ?, ?)",
             [topic, description, postId, author, photoId, replyId]
         );
-
         const [replyButton] = await connection.execute("INSERT INTO replyButton (reply_id) VALUES (?)", [replyResult.insertId]);
         await connection.commit();
-        
         return {
             replyId: replyResult.insertId,
             buttonId: replyButton.insertId
@@ -287,6 +277,7 @@ async function createReplyWithPhoto(topic, description, postId, author, replyId,
         connection.release();
     }
 }
+
 
 async function deleteReply(id) {
     const [result] = await sql.query("DELETE FROM reply WHERE id = ?", [id]);
@@ -431,20 +422,29 @@ async function deleteAccount(id) {
     return result.affectedRows;
 }
 
-async function createPhoto(buffer) {
-    const [result] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-    return result.insertId;
+
+
+// Updated getPhotoById remains similar but now uses the "name" column.
+async function getPhotoById(id) {
+    const [result] = await sql.execute("SELECT name FROM photos WHERE id = ?", [id]);
+    const photoName = result[0]?.name;
+    if (!photoName) return null;
+    // Read the file from disk.
+    const photoBuffer = await files.readFile(photoName);
+    return photoBuffer;
 }
 
-async function getPhotoById(id) {
-    const [result] = await sql.execute("SELECT photo FROM photos WHERE id = ?", [id]);
-    return result[0]?.photo || null;
-}
+
 
 async function updatePhoto(id, buffer) {
-    const [result] = await sql.execute("UPDATE photos SET photo = ? WHERE id = ?", [buffer, id]);
-    return result.affectedRows;
+    const [rows] = await sql.execute("SELECT name FROM photos WHERE id = ?", [id]);
+    const photoName = rows[0]?.name;
+    if (!photoName) return 0;
+    // Overwrite the file with the new content.
+    await files.createFile(photoName, buffer);
+    return 1; // Assume success.
 }
+
 
 async function deletePhoto(id) {
     const [result] = await sql.execute("DELETE FROM photos WHERE id = ?", [id]);
@@ -506,20 +506,16 @@ async function updateProfile(id, job_title, interests, education, buffer) {
     try {
         await connection.beginTransaction();
         let photo_id = null;
-
         if (buffer) {
-            const [photoResult] = await connection.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-            photo_id = photoResult.insertId;
+            photo_id = await insertPhoto(buffer, connection);
         } else {
             const [rows] = await connection.execute('SELECT photo_id FROM profile WHERE id = ?', [id]);
             photo_id = rows[0]?.photo_id;
         }
-
         const [result] = await connection.execute(
             'UPDATE profile SET job_title = ?, interests = ?, education = ?, photo_id = ? WHERE id = ?',
             [job_title, interests, education, photo_id, id]
         );
-
         await connection.commit();
         return result.affectedRows;
     } catch (error) {
@@ -528,6 +524,28 @@ async function updateProfile(id, job_title, interests, education, buffer) {
     } finally {
         connection.release();
     }
+}
+
+/*inserts photoid  into database 
+ * then will use it to stash it in the filesystem
+ * returns the photoid 
+ */
+
+
+async function insertPhoto(buffer, connection = null) {
+    if (!buffer) return null;
+    // Use the provided connection if available, otherwise the pool (sql).
+    const executor = connection || sql;
+    // Insert a placeholder record with an empty name.
+    const [result] = await executor.execute("INSERT INTO photos (name) VALUES (?)", [""]);
+    const photoId = result.insertId;
+    // Generate the file name from the photoId.
+    const photoName = files.idToJpgName(photoId);
+    // Update the record with the file name.
+    await executor.execute("UPDATE photos SET name = ? WHERE id = ?", [photoName, photoId]);
+    // Write the file to disk.
+    await files.createFile(photoName, buffer);
+    return photoId;
 }
 
 module.exports = {
@@ -561,7 +579,7 @@ module.exports = {
     getAccountById,
     updateAccount,
     deleteAccount,
-    createPhoto,
+    insertPhoto,
     getPhotoById,
     updatePhoto,
     deletePhoto,
