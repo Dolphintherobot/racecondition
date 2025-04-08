@@ -77,7 +77,7 @@ function Response(props) {
   return (id != null ? (
     <div className="card mt-2">
       <p>{props.description}</p>
-      <Photo photo={props.photo} />
+      <Photo photo={props.photo} photo_id = {props.photoId} />
       
       <div className="vote-container">
         <Button replyId={id} upvotes={0} />
@@ -91,8 +91,9 @@ function Response(props) {
             topic={props.topic}
             description={response.description} 
             timestamp={response.timestamp}
-            photo={response.photo}
+            photo_id={response.photoId}
             author={response.author}
+            photo = {response.photo}
           />
         ))}
       </ul>

@@ -79,7 +79,7 @@ function Channel() {
             topic: element.replyTopic,
             description: element.replyDescription,
             author: element.replyAuthor,
-            photo: element.replyPhoto,
+            photoId: element.replyPhotoId,
             button: { id: element.replyId }
           });
         }
@@ -89,13 +89,13 @@ function Channel() {
           topic: element.postTopic,
           description: element.postDescription,
           author: element.postAuthor,
-          photo: element.postPhoto,
+          photoId: element.postPhotoId,
           responses: [{
             id: element.replyId,
             topic: element.replyTopic,
             description: element.replyDescription,
             author: element.replyAuthor,
-            photo: element.replyPhoto,
+            photoId: element.replyPhotoId,
             button: { id: element.replyId }
           }],
           button: { id: element.buttonId, upvotes: element.upvotes, postId: element.postId }
@@ -164,7 +164,8 @@ function Channel() {
                 responses={p.responses}
                 button={p.button}
                 author={p.author}
-                photo={p.photo}
+                photoId={p.photoId}
+		photo = {p.photo}
               />
             ))}
           </div>

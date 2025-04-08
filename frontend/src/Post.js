@@ -35,7 +35,7 @@ function Post(props) {
         topic: props.topic,
         description: data,
         id: d.replyId,
-        photo: photo,
+        photoId: photoId,
         author: username,
       }]);
     });
@@ -45,7 +45,7 @@ function Post(props) {
     <div className="card">
       <h2>{props.topic}</h2>
       <p>{props.description}</p>
-      <Photo photo={props.photo} />
+      <Photo photo = {photo} photo_id={props.photoId} />
       <p>Posted by {author}</p>
       <Rank author={author} />
       
@@ -82,7 +82,8 @@ function Post(props) {
               timestamp={response.timestamp}
               topic={response.topic}
               author={response.author}
-              photo={response.photo}
+              photoId={response.photoId}
+	      photo = {response.photo}
             />
           ))}
         </ul>
