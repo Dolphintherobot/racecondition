@@ -1,7 +1,7 @@
 'use strict';
 
 const mysql = require("mysql2");
-
+const files = require("./files");
 const con = mysql.createPool({
     host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT || "3306",
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS post (
 
 CREATE TABLE IF NOT EXISTS photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    photo MEDIUMBLOB NOT NULL
+    name TEXT,
 );
 
 CREATE TABLE IF NOT EXISTS reply (
@@ -170,21 +170,19 @@ async function getChannelData(id) {
             p.date AS postDate,
             p.channelId,
             p.author AS postAuthor,
-            postPhoto.photo AS postPhoto,
-            r.id AS replyId,
+            p.photoId as postPhotoId,
+	    r.id AS replyId,
             r.topic AS replyTopic,
             r.description AS replyDescription,
             r.date AS replyDate,
             r.author AS replyAuthor,
-            replyPhoto.photo AS replyPhoto,
+	    r.photoId as replyPhotoId,
             b.id AS buttonId,
             b.upvotes,
             b.post_id
         FROM post AS p
         LEFT JOIN reply AS r ON p.id = r.post_id
         LEFT JOIN button AS b ON p.id = b.post_id
-        LEFT JOIN photos AS postPhoto ON p.photoId = postPhoto.id
-        LEFT JOIN photos AS replyPhoto ON r.photo_id = replyPhoto.id
         WHERE p.channelId = ?
         ORDER BY p.date`, [id]);
     return result;
