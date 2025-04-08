@@ -157,7 +157,13 @@ async function updateChannel(id, title, description) {
 }
 
 async function deleteChannel(id) {
-    const [result] = await sql.query("DELETE FROM channel WHERE id = ?", [id]);
+    // Get all posts belonging to this channel.
+    const [posts] = await sql.execute("SELECT id FROM post WHERE channelId = ?", [id]);
+    for (const post of posts) {
+        await deletePost(post.id);
+    }
+    // Delete the channel record.
+    const [result] = await sql.execute("DELETE FROM channel WHERE id = ?", [id]);
     return result.affectedRows;
 }
 
@@ -234,7 +240,19 @@ async function updatePost(id, topic, description, author, photoId) {
 }
 
 async function deletePost(id) {
-    const [result] = await sql.query("DELETE FROM post WHERE id = ?", [id]);
+    // Get the post's photo id.
+    const [post] = await sql.execute("SELECT photoId FROM post WHERE id = ?", [id]);
+    const photoId = post[0]?.photoId;
+    if (photoId) {
+        await deletePhoto(photoId);
+    }
+    // Get all replies associated with this post.
+    const [replies] = await sql.execute("SELECT id FROM reply WHERE post_id = ?", [id]);
+    for (const reply of replies) {
+        await deleteReply(reply.id);
+    }
+    // Delete the post record.
+    const [result] = await sql.execute("DELETE FROM post WHERE id = ?", [id]);
     return result.affectedRows;
 }
 
@@ -278,11 +296,19 @@ async function createReplyWithPhoto(topic, description, postId, author, replyId,
     }
 }
 
-
 async function deleteReply(id) {
-    const [result] = await sql.query("DELETE FROM reply WHERE id = ?", [id]);
+    // Retrieve the reply's associated photo id.
+    const [reply] = await sql.execute("SELECT photo_id FROM reply WHERE id = ?", [id]);
+    const photoId = reply[0]?.photo_id;
+    if (photoId) {
+        await deletePhoto(photoId);
+    }
+    // Delete the reply record.
+    const [result] = await sql.execute("DELETE FROM reply WHERE id = ?", [id]);
     return result.affectedRows;
 }
+
+
 
 async function updateReply(id, topic, description) {
     const [result] = await sql.query("UPDATE reply SET topic = ?, description = ? WHERE id = ?", [topic, description, id]);
@@ -418,7 +444,14 @@ async function updateAccount(id, username, password, isAdmin, photo_id) {
 }
 
 async function deleteAccount(id) {
-    const [result] = await sql.execute('DELETE FROM account WHERE id = ?', [id]);
+    // Get the account's photo id.
+    const [account] = await sql.execute("SELECT photo_id FROM account WHERE id = ?", [id]);
+    const photoId = account[0]?.photo_id;
+    if (photoId) {
+        await deletePhoto(photoId);
+    }
+    // Delete the account record.
+    const [result] = await sql.execute("DELETE FROM account WHERE id = ?", [id]);
     return result.affectedRows;
 }
 
@@ -445,11 +478,23 @@ async function updatePhoto(id, buffer) {
     return 1; // Assume success.
 }
 
-
 async function deletePhoto(id) {
+    // Retrieve the photo's file name.
+    const [rows] = await sql.execute("SELECT name FROM photos WHERE id = ?", [id]);
+    const photoName = rows[0]?.name;
+    if (photoName) {
+        try {
+            await files.deleteFile(photoName);
+        } catch (error) {
+            console.error(`Error deleting file ${photoName}:`, error);
+            // Optionally handle error (e.g., continue or abort deletion)
+        }
+    }
+    // Delete the photo record.
     const [result] = await sql.execute("DELETE FROM photos WHERE id = ?", [id]);
     return result.affectedRows;
 }
+
 
 async function createProfile(accountId, buffer) {
     let photoId = null;
