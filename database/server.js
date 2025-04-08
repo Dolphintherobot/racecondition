@@ -376,12 +376,17 @@ app.put("/button/:id", async (req, res) => {
 	      {
 		      down = false;
 		      up = false;
-	      }*/
+	      }
 	      console.log(logs)
 	      console.log(up)
-	      console.log(down)
-	logs = await db.updateLogs(logs[0].id,up,down);
-	res.status(203).send({logs});
+	      console.log(down)*/
+	db.updateLogs(logs[0].id,up,down);
+	logs[0] = {
+		...logs[0],
+		hasUpvoted:up,
+		hasDownvoted:down,
+	}
+	res.status(203).json({logs:logs[0]});
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to update button" });
