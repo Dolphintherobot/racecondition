@@ -23,7 +23,7 @@ services:
       - "3002:8080"
     restart: always
     volumes:
-      - "./myphotos:/app/files" 
+      - "./myphotos:/app/files/" 
     environment:
       DB_HOST: "mysql1"  # Use the service name to connect to the MySQL container
       DB_PORT: 3306  # The internal MySQL port
