@@ -1,6 +1,6 @@
 const fs = require("fs/promises");
 
-const filePath = process.env.filePath || "/app/files/"
+const filePath = process.env.FILE_PATH || "/app/files/"
 
 
 
@@ -64,7 +64,7 @@ function idToJpgName(id) {
 
 
 
-modules.exports = {
+module.exports = {
 	readFile,
 	createFile,
 	idToJpgName,

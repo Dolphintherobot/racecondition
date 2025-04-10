@@ -1,7 +1,7 @@
 'use strict';
 
 const mysql = require("mysql2");
-const files = require("./files");
+const files = require("./file");
 const con = mysql.createPool({
     host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT || "3306",
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS post (
 
 CREATE TABLE IF NOT EXISTS photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    name TEXT,
+    name TEXT
 );
 
 CREATE TABLE IF NOT EXISTS reply (
@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS buttonLogs (
 
 async function setUp() {
     await sql.query(createTablesQuery);
-    await sql.query("INSERT INTO photos (photo) VALUES (?)", [1]);
+    await sql.query("INSERT INTO photos (name) VALUES (?)", ["a"]);
     await sql.query("INSERT INTO account (username,password,isAdmin,photo_id) VALUES (?,?,?,?)", 
                    ["admin","password",1,1]);
 }
@@ -182,7 +182,7 @@ async function getChannelData(id) {
             r.description AS replyDescription,
             r.date AS replyDate,
             r.author AS replyAuthor,
-	    r.photoId as replyPhotoId,
+	    r.photo_id as replyPhotoId,
             b.id AS buttonId,
             b.upvotes,
             b.post_id
