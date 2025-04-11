@@ -390,10 +390,6 @@ app.put("/button/:id", async (req, res) => {
 	const affectedRows = await db.updateButton(req.params.id,up);
         if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
 
-
-	      console.log("Old logs are ");
-	      console.log(logs);
-
 	//ensure that the logs get set correctly such that 
 	      //if a person undoing a upvote or downvote is 
 	      //not blocked from downvoting
@@ -412,8 +408,6 @@ app.put("/button/:id", async (req, res) => {
 		hasUpvoted:up,
 		hasDownvoted:down,
 	}
-	 console.log("New logs are ");
-	      console.log(logs);
 	res.status(203).json({logs:logs[0]});
     } catch (err) {
         console.error(err);
