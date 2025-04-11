@@ -27,6 +27,7 @@ async function createFile(name,buffer) {
 
 	name = filePath + name
 
+
 	try {
 	await fs.writeFile(name,buffer, {flag:"w",encoding:"base64"}); 
 	}
@@ -42,7 +43,8 @@ async function createFile(name,buffer) {
  */
 async function deleteFile(name) {
 
-	name = path + name;
+	name = filePath + name;
+	console.log(name);
 	try {
 		await fs.unlink(name)
 		return true;
