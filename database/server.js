@@ -6,9 +6,37 @@ const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
 const db = require('./database');
+const cluster = require('node:cluster');
+const http = require('node:http');
+const numCPUs = require('node:os').availableParallelism();
+const process = require('node:process');
 
+
+if (cluster.isMaster) {
+ console.log(`Master ${process.pid} is running`);
+// Fork workers.
+for (let i = 0; i < numCPUs; i++) {
+ cluster.fork();
+ }
+ cluster.on('exit', (worker, code, signal) => {
+ console.log(`worker ${worker.process.pid} died`);
+ });
+
+} else {
 const app = express();
-const PORT = 8080;
+const port = 8080;
+ app.get('/', (req, res) => {
+ res.send(`Hello from Worker ${process.pid}`);
+ });
+ app.listen(port, () => {
+ console.log(`Worker ${process.pid} started`);
+ });
+
+
+
+
+//const app = express();
+//const PORT = 8080;
 
 db.setUp().catch(err => {
     console.error('Database setup failed:', err);
@@ -345,7 +373,10 @@ app.put("/button/:id", async (req, res) => {
        
 	 let logs = await db.checkLogs(id,account_id);
 	 const empty = logs.length === 0
-	if (empty ){ logs = await db.createLogs(id,account_id,up,!up,type); }
+	if (empty){
+		await db.createLogs(id,account_id,up,!up,type);
+	 	logs = await db.checkLogs(id,account_id);
+	}
 
 	      //console.log(logs);
 	const legal =  empty ||( ((logs[0].hasUpvoted != up ||  !logs[0].hasUpvoted)
@@ -358,7 +389,11 @@ app.put("/button/:id", async (req, res) => {
 	}
 	const affectedRows = await db.updateButton(req.params.id,up);
         if (affectedRows === 0) return res.status(404).send({ message: "Button not found" });
-        
+
+
+	      console.log("Old logs are ");
+	      console.log(logs);
+
 	//ensure that the logs get set correctly such that 
 	      //if a person undoing a upvote or downvote is 
 	      //not blocked from downvoting
@@ -371,21 +406,14 @@ app.put("/button/:id", async (req, res) => {
 		up = false;
 	}
 
-	      /*
-	else if (!(logs[0].hasDownvoted || logs[0].hasUpvoted))
-	      {
-		      down = false;
-		      up = false;
-	      }
-	      console.log(logs)
-	      console.log(up)
-	      console.log(down)*/
 	db.updateLogs(logs[0].id,up,down);
 	logs[0] = {
 		...logs[0],
 		hasUpvoted:up,
 		hasDownvoted:down,
 	}
+	 console.log("New logs are ");
+	      console.log(logs);
 	res.status(203).json({logs:logs[0]});
     } catch (err) {
         console.error(err);
@@ -575,6 +603,17 @@ app.put("/profile/:id", upload.single("photo"), async (req, res) => {
     }
 });
 
+
+
+
+
+/*
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+*
+*/
+
+
+
+}// the curly brace that encapsulates the entire express routing logic for clusters 
