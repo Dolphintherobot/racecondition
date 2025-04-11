@@ -44,7 +44,7 @@ async function createFile(name,buffer) {
 async function deleteFile(name) {
 
 	name = filePath + name;
-	console.log(name);
+	//console.log(name);
 	try {
 		await fs.unlink(name)
 		return true;
