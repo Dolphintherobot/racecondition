@@ -339,6 +339,7 @@ async function deleteButton(id) {
 async function createLogs(button_id, account_id, upvote, downvote, type) {
     let query, params;
 
+	try {
     if (type === "post") {
         query = "INSERT INTO buttonLogs (button_id, account_id, hasUpvoted, hasDownvoted, replyButton_id) VALUES (?, ?, ?, ?, ?)";
         params = [button_id, account_id, upvote, downvote, null]; 
@@ -349,6 +350,11 @@ async function createLogs(button_id, account_id, upvote, downvote, type) {
 
     const [result] = await sql.query(query, params);
     return result;
+	}
+	catch (err) {
+		console.log(err);
+		return undefined;
+	}
 }
 
 

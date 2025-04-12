@@ -35,7 +35,7 @@ function Post(props) {
         topic: props.topic,
         description: data,
         id: d.replyId,
-        photoId: photoId,
+        photoId: d.photoId,
         author: username,
       }]);
     });
