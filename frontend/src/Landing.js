@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import './App.css';
 
 function Landing() {
@@ -21,9 +22,9 @@ function Landing() {
             <p>solve programming challenges together</p>
           </div>
           <div className="cta-buttons animate-pop-in" style={{ animationDelay: '1.2s' }}>
-            <button className="btn btn-glow">
+            <Link to="/Login" className="btn btn-glow">
               Get Started
-            </button>
+            </Link>
           </div>
         </div>
       </div>
