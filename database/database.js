@@ -501,14 +501,11 @@ async function deletePhoto(id) {
     return result.affectedRows;
 }
 
-
 async function createProfile(accountId, buffer) {
     let photoId = null;
     if (buffer) {
-        const [photoResult] = await sql.execute("INSERT INTO photos (photo) VALUES (?)", [buffer]);
-        photoId = photoResult.insertId;
+        photoId = await insertPhoto(buffer);
     }
-
     const [result] = await sql.execute(
         'INSERT INTO profile (account_id, photo_id) VALUES (?, ?)',
         [accountId, photoId]
@@ -518,15 +515,39 @@ async function createProfile(accountId, buffer) {
 
 async function getProfile(id) {
     const query = id ? `
-        SELECT * FROM profile as p
+        SELECT 
+            p.id,
+            p.account_id,
+            p.job_title,
+            p.interests,
+            p.education,
+            p.date,
+            p.photo_id,
+            account.username,
+            account.isAdmin
+        FROM profile as p
         INNER JOIN account ON account.id = p.account_id
-        WHERE p.id = ?` : `
-        SELECT * FROM profile as p
+        WHERE p.id = ?` 
+        : `
+        SELECT 
+            p.id,
+            p.account_id,
+            p.job_title,
+            p.interests,
+            p.education,
+            p.date,
+            p.photo_id,
+            account.username,
+            account.isAdmin
+        FROM profile as p
         LEFT JOIN account ON account.id = p.account_id`;
-    
+
     const [rows] = await sql.execute(query, id ? [id] : []);
     return rows;
 }
+
+
+
 
 async function searchProfiles(query) {
     const [rows] = await sql.execute(`
@@ -576,7 +597,6 @@ async function updateProfile(id, job_title, interests, education, buffer) {
         connection.release();
     }
 }
-
 /*inserts photoid  into database 
  * then will use it to stash it in the filesystem
  * returns the photoid 
