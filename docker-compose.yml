@@ -48,9 +48,9 @@ services:
     environment:
       URL: "http://db-backend:3002"
       restart: unless-stopped
-    depends_on:
-      database-backend: 
-        condition: service_started
+        #depends_on:
+        #database-backend: 
+        #condition: service_started
 
 
 
